@@ -1,0 +1,10 @@
+autopep8
+flake8
+importlib-metadata
+mccabe
+Pillow
+pycodestyle
+pyflakes
+toml
+typing-extensions
+zipp

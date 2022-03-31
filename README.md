@@ -1,6 +1,7 @@
 # HEXGRID 六角格地图编辑
-![六角格预览](./tmp/sample_grid.png)
+![六角格预览](./sample/sample_grid.png)
 # LICENCE
+open source under Apache License
 ~~~
    Copyright [2022] [Thunderain Zhou]
 

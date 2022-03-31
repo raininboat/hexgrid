@@ -5,6 +5,7 @@ from math import log
 import re
 from typing import overload
 import hexgrid
+from hexgrid.misc import escape, unescape
 
 
 class Pos(object):
@@ -76,17 +77,25 @@ class Pos(object):
         return t
 
     def coord_text_cood(self):
+        "cood for grid title"
         x, y = self.px
         t_x = x
         t_y = y - hexgrid.global_const.PX_RATIO * hexgrid.global_const.PX_R
         return (t_x, t_y)
 
+    def image_paste_box(self, image=None):
+        x, y = map(int, self.px)
+        d = int((1.5 - hexgrid.global_const.PX_RATIO)
+                * hexgrid.global_const.PX_R)
+        return (x - d, y - d)
+
     @property
     def px(self):
         "absolute coordinate on the canvas (for drawing)"
         x = self.x * hexgrid.global_const.PX_R * 1.5
-        y = ((self.x / 2 - self.x // 2) * hexgrid.global_const.PX_R * 2 * hexgrid.global_const.PX_RATIO +
-             2 * self.y * hexgrid.global_const.PX_R * hexgrid.global_const.PX_RATIO)
+        y = ((self.x // 2 - self.x / 2) * hexgrid.global_const.PX_R * 2 *
+             hexgrid.global_const.PX_RATIO + 2 * self.y *
+             hexgrid.global_const.PX_R * hexgrid.global_const.PX_RATIO)
         return (x, y)
 
     @property
@@ -141,11 +150,11 @@ class Grid(object):
         self.map_dict = {
             "<item>": {},
             "<player>": {},
-            "<floor>" : {}
+            "<floor>": {}
         }
         self.cfg = None
         self.user = {}
-        self.color = {}
+        self.color = None
         for i in map_save_dict.values():
             tag = i.tag
             data = i.data
@@ -159,10 +168,141 @@ class Grid(object):
                 for i in data:
                     self.user[i.uid] = i
             elif tag == "<color>":
-                for i in data:
-                    self.color[i.id] = i
+                self.color = i
             else:
                 print("unknown tag '{0}'".format(tag))
+
+
+class MapGridElement_tamplate(object):
+    def __init__(self, row_data_list):
+        self.data = row_data_list
+
+    def __iter__(self):
+        return self.row_iter(self.data)
+
+    class row_iter(object):
+        def __init__(self, data_list):
+            self.data = data_list
+            self.index = 0
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            if self.index >= len(self.data):
+                raise StopIteration()
+            tmp_data = str(self.data[self.index])
+            self.index += 1
+            return escape(tmp_data)
+
+
+class Node:
+    class floor(MapGridElement_tamplate):
+        def __init__(self, pos: Pos, color_id):
+            self.pos = pos
+            self.color = color_id
+
+        def __iter__(self):
+            return self.row_iter(
+                [self.pos, self.color]
+            )
+
+    class set(MapGridElement_tamplate):
+        def __init__(self, x_max, y_max, r, name):
+            self.x_max = int(x_max)
+            self.y_max = int(y_max)
+            self.r = int(r)      # TODO: 存档六角格半径可变
+            self.name = name
+
+        @property
+        def size(self):
+            x = hexgrid.global_const.PX_R * 1.5 * (self.x_max + 0.7)
+            y = (hexgrid.global_const.PX_R * hexgrid.global_const.PX_RATIO
+                 * (self.y_max + 0.5) * 2
+                 )
+            return (int(x), int(y))
+
+        def __iter__(self):
+            return self.row_iter([self.x_max, self.y_max,
+                                  self.r, self.name])
+
+    class item(MapGridElement_tamplate):
+        def __init__(self, id, name, color_id, type_id, pos: Pos):
+            self.id = id
+            self.name = name
+            self.color = int(color_id)
+            self.type = int(type_id)
+            self.pos = pos
+
+        @property
+        def stamp_file_name(self):
+            t = hexgrid.stamp_load.RESOURCE_STAMP_TYPE[self.type]
+            c = self.color
+            return t.format_map(color=c)
+
+        def __iter__(self):
+            return self.row_iter(
+                [str(x) for x in (
+                    self.id, self.name, self.color,
+                    self.type, self.pos
+                )]
+            )
+
+    class user(MapGridElement_tamplate):
+        def __init__(self, uid, hash):
+            self.uid = uid
+            self.hash = hash
+
+        def __iter__(self):
+            return self.row_iter([self.uid, self.hash])
+
+    class player(MapGridElement_tamplate):
+        def __init__(self, id, name, uid, color_id, type_id, pos: Pos):
+            self.id = id
+            self.name = name
+            self.uid = uid
+            self.color = int(color_id)
+            self.type = int(type_id)
+            self.pos = pos
+
+        @property
+        def stamp_file_name(self):
+            t = hexgrid.stamp_load.RESOURCE_STAMP_TYPE[self.type]
+            c = self.color
+            return t.format_map(color=c)
+
+        def __iter__(self):
+            return self.row_iter(
+                [str(x) for x in (
+                    self.id, self.name, self.uid,
+                    self.color, self.type, self.pos
+                )]
+            )
+
+    class color(MapGridElement_tamplate):
+        def __init__(self, color):
+            # self.id = int(row_data_list[0])
+            self.color = color
+
+        def setcolor(self, new_color):
+            self.color = new_color
+
+        @property
+        def deleted(self):
+            return self.color == "_DELETED_"
+
+        def delcolor(self):
+            self.color = "_DELETED_"
+
+        def __eq__(self, __o: object):
+            if self.color == "_DELETED_":
+                return False
+            return self.color == __o
+
+        def __iter__(self):
+            return self.row_iter(
+                [self.color]
+            )
 
 
 class GridNode(object):

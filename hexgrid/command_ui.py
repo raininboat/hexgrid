@@ -1,10 +1,32 @@
+# -*- encoding: utf-8 -*-
+"""
+   Hexgrid by Thunderain Zhou
+   Copyright 2022 Thunderain Zhou
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+
 import cmd
-from tkinter import filedialog, Tk, colorchooser
-import hexgrid
-from objprint import op
 import time
+from tkinter import Tk, filedialog
+
+from objprint import op
+
+from . import create_grid_pic, global_const, gridcls, loadmap
+
 
 class MapEditInterface(cmd.Cmd):
+    "The Command Line User Interface of Hexgrid"
     intro = """\
 Welcome to Map Editor of hexgrid V0.1(DEMO Version)
 This is a terminal based interface of map editor
@@ -24,42 +46,41 @@ Use '.help' to see help ...
         if self.data is not None:
             self.data = None
         if len(arg) == 0 or arg == "tk":
-            rt = Tk()
-            rt.withdraw()
-            # rt.
-            rt.wm_attributes('-topmost', 1)
+            root = Tk()
+            root.withdraw()
+            # root.
+            root.wm_attributes('-topmost', 1)
             path = filedialog.askopenfilename(initialdir=".", filetypes=[(
                 "hexgrid save file", ".hgdata"), ("all files", ".*")],
-                parent=rt, title="select hex grid save file")
-            rt.destroy()
+                parent=root, title="select hex grid save file")
+            root.destroy()
         else:
             path = arg
         if path == "":
             color_print("cancelled", lvl=1)
             return False
-        color_print("- start -",lvl=2)
-        t = time.time()
-        self.data = hexgrid.loadmap.load_file(path)
-        self.mapcanvas = hexgrid.create_grid_pic.MapCanvas(self.data)
+        color_print("- start -", lvl=2)
+        _t = time.time()
+        self.data = loadmap.load_file(path)
+        self.mapcanvas = create_grid_pic.MapCanvas(self.data)
         self.mapcanvas.craete_map()
-        color_print("time used - {0}".format(time.time()-t),lvl=2)
+        color_print(f"time used - {time.time()-_t}", lvl=2)
         return False
 
-    def do_status(self, arg: str):
-        op(self.data)
+    def do_status(self, *args):
+        "return status"
+        op(self.data, args)
 
-    def do_show(self, arg: str):
-        pass
-
-    def do_preview(self, arg: str):
+    def do_preview(self, *_):
+        "preview the hexmap picture"
         if self.mapcanvas is not None:
-            color_print("- start -",lvl=2)
-            t = time.time()
+            color_print("- start -", lvl=2)
+            _t = time.time()
             preview = self.mapcanvas.image.copy()
             size = self.mapcanvas.image.size
-            preview.resize((int(size[0]/1.5), int(size[1]/1.5)),1)
+            preview.resize((int(size[0] / 1.5), int(size[1] / 1.5)), 1)
             preview.show()
-            color_print("time used - {0}".format(time.time()-t),lvl=2)
+            color_print(f"time used - {time.time() - _t}", lvl=2)
 
             # self.mapcanvas.image.show("image preview")
         else:
@@ -79,7 +100,7 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
                 color_print("Input ERR", lvl=5)
                 self.do_help("add")
                 return False
-            pos = hexgrid.gridcls.Pos(pos=arg[1])
+            pos = gridcls.Pos(pos=arg[1])
             color_raw = arg[2]
             color_id = None
             if color_raw.startswith("#"):
@@ -89,46 +110,51 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
                     color_id = self.data.color.add_color(color_raw)
             elif color_raw.isalnum():
                 color_id = int(color_raw)
-            a = hexgrid.loadmap.MapSave_floor.MapSave_row()
-            self.data.map_dict["<floor>"][pos]
-            # self.data.color.append(hexgrid.loadmap.MapSave_color.MapSave_row([color_raw]))
+            floor_elem = gridcls.Node.Floor(pos, color_id)
+            self.data.map_dict["<floor>"][pos] = floor_elem
+            self.mapcanvas.draw_single_hex_floor(pos,
+                                                 self.data.color[color_id])
+            # self.data.color.append(loadmap.MapSave_color.MapSave_row([color_raw]))
 
     def do_save(self, arg: str):
+        "save the map file"
         arg_lst = arg.split()
         if len(arg_lst) == 0 or arg_lst[0] == "tk":
-            rt = Tk()
-            rt.withdraw()
-            # rt.
-            rt.wm_attributes('-topmost', 1)
+            root = Tk()
+            root.withdraw()
+            root.wm_attributes('-topmost', 1)
             path = filedialog.asksaveasfilename(initialdir=".", filetypes=[(
                 "hexgrid data file", ".hgdata"), ("all files", ".*")],
-                parent=rt, title="select hex grid save file",
+                parent=root, title="select hex grid save file",
                 defaultextension='.hgdata')
             print(path)
-            rt.destroy()
+            root.destroy()
+        self.data.save(path)
 
     def do_render(self, arg: str):
+        "render the map picture (.png) and save it"
         arg_lst = arg.split()
         if len(arg_lst) == 0 or arg_lst[0] == "tk":
-            rt = Tk()
-            rt.withdraw()
-            # rt.
-            rt.wm_attributes('-topmost', 1)
+            root = Tk()
+            root.withdraw()
+            # root.
+            root.wm_attributes('-topmost', 1)
             path = filedialog.asksaveasfilename(initialdir=".", filetypes=[(
                 "png file", ".png"), ("all files", ".*")],
-                parent=rt, title="select hex grid save file",
+                parent=root, title="select hex grid save file",
                 defaultextension=".png")
             print(path)
-            rt.destroy()
+            root.destroy()
         else:
             pass
-        pass
-        color_print("- start -",lvl=2)
-        t = time.time()
+        color_print("- start -", lvl=2)
+        _t = time.time()
         self.mapcanvas.image.save(path)
-        color_print("time used - {0}".format(time.time()-t),lvl=2)
+        color_print(f"time used - {time.time()-_t}", lvl=2)
 
-    def do_exit(self, arg: str):
+    @classmethod
+    def do_exit(cls, *_):
+        "exit the terminal"
         return True
 
 
@@ -143,7 +169,7 @@ def color_print(text, lvl=None):
     `red` -> 5
     `white` -> -1
     """
-    tc = hexgrid.global_const.TERMCOLOR
+    tc = global_const.TERMCOLOR
     if lvl is None:
         print(tc.DEFAULT, text, tc.DEFAULT)
     elif lvl == 0:

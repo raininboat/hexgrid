@@ -1,19 +1,38 @@
-import hexgrid
-from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageChops
-import timeit
+# -*- encoding: utf-8 -*-
+"""
+   Hexgrid by Thunderain Zhou
+   Copyright 2022 Thunderain Zhou
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+
+from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFont
+
+from . import global_const, gridcls, loadmap
 
 
-class MapCanvas(object):
-    def __init__(self, data: hexgrid.gridcls.Grid):
+class MapCanvas:
+    def __init__(self, data: gridcls.Grid):
         self.grid_data = data
         self.image = Image.new(
             mode="RGBA", size=self.grid_data.cfg.size,
             color=(255, 255, 255, 255))
         self._font_title = ImageFont.truetype(
-            hexgrid.global_const.FONT_TITLE_PATH, size=8)
+            global_const.FONT_TITLE_PATH, size=8)
         self._draw = ImageDraw.Draw(self.image, mode="RGBA")
 
-    def draw_single_hex_floor(self, pos: hexgrid.gridcls.Pos, color):
+    def draw_single_hex_floor(self, pos: gridcls.Pos, color):
+        "draw the single floor (fill the target hexagon grid)"
         points = pos.point_list_around()
         color_t = ImageColor.getrgb(color)
         self._draw.polygon(points, fill=color_t,
@@ -29,7 +48,7 @@ class MapCanvas(object):
     def _draw_map_grid(self):
         for i in range(self.grid_data.cfg.x_max + 1):
             for v in range(1, self.grid_data.cfg.y_max + 1):
-                x = hexgrid.gridcls.Pos(i, v)
+                x = gridcls.Pos(i, v)
                 self._draw.line(x.point_list_around(),
                                 fill=(0, 0, 0, 255), width=1)
                 txt = x.show_pos
@@ -38,27 +57,29 @@ class MapCanvas(object):
                     0, 0, 0, 255), font=self._font_title, anchor="ma")
 
     def draw_single_stamp(self, stamp_type, stamp_color_id, pos,
-                         text=None, mask_alpha=None):
+                          text=None, mask_alpha=None):
+        "draw a single stamp (item or player) on the map"
+        # TODO: use google icons
         stm = load_stamp(
             stamp_type,
             stamp_color_id
         ).resize(
-                (int((1.5 - hexgrid.global_const.PX_RATIO) *
-                     hexgrid.global_const.PX_R * 2),
-                 int((1.5 - hexgrid.global_const.PX_RATIO) *
-                     hexgrid.global_const.PX_R * 2))
+                (int((1.5 - global_const.PX_RATIO) *
+                     global_const.PX_R * 2),
+                 int((1.5 - global_const.PX_RATIO) *
+                     global_const.PX_R * 2))
         )
-        paste_bbox = pos.image_paste_box(image=stm)
-        a = stm.getchannel("A")
+        paste_bbox = pos.image_paste_box()
+        alpha = stm.getchannel("A")
         if mask_alpha is None:
             mask_alpha = 0x7d
-        mask_t = Image.new("L", a.size, color=mask_alpha)
-        mask = ImageChops.darker(a, mask_t)  # 整体透明度增加
+        mask_t = Image.new("L", alpha.size, color=mask_alpha)
+        mask = ImageChops.darker(alpha, mask_t)  # 整体透明度增加
         self.image.paste(stm, box=paste_bbox, mask=mask)
         mask.close()
         stm.close()
         if text is not None:
-            self._draw.text(pos.px, text=text[0], font=self._font_title,
+            self._draw.text(pos.xy_abs, text=text[0], font=self._font_title,
                             anchor="mm", fill=text[1])
 
     def _draw_items(self):
@@ -87,23 +108,25 @@ class MapCanvas(object):
         self._draw_map_grid()
         self._draw_items()
         self._draw_players()
-        if save_path is None:
-            save_path = "./tmp/tmp_map.png"
-        self.image.save(save_path)
+        # if save_path is None:
+        #     save_path = "./tmp/tmp_map.png"
+        # self.image.save(save_path)
+        print(f"""{global_const.TERMCOLOR.YELLOW}MapCanvas will not save map \
+when create a new map now - {save_path}""")
 
     def __del__(self):
         self.image.close()
 
 
 def load_stamp(stamp_type, stamp_color_id):
-    path = hexgrid.global_const.RESOURCE_STAMP_TYPE[stamp_type].format(
+    path = global_const.RESOURCE_STAMP_TYPE[stamp_type].format(
         color=int(stamp_color_id))
     stm = Image.open(path)
     return stm
 
 
 if __name__ == "__main__":
-    path = "./sample/save.hgdata"
-    file = hexgrid.loadmap.load_file(path)
+    test_path = "./sample/save.hgdata"
+    file = loadmap.load_file(test_path)
     a = MapCanvas(file)
     a.craete_map()

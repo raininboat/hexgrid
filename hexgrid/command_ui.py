@@ -140,6 +140,8 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
                 defaultextension='.hgdata')
             print(path)
             root.destroy()
+        else:
+            path = arg
         self.data.save(path)
 
     def do_render(self, arg: str):
@@ -157,7 +159,7 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
             print(path)
             root.destroy()
         else:
-            pass
+            path = arg
         color_print("- start -", lvl=2)
         _t = time.time()
         self.mapcanvas.image.save(path)

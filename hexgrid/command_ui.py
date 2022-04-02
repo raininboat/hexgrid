@@ -47,11 +47,11 @@ Use 'help' to see help ...\
     def do_load(self, arg: str):
         "load [path]|'tk'"
         # print(arg.split())
-        # args = arg.split()
+        arg_lst = arg.split()
         if self.data is not None:
             self.data = None
         path: str = None
-        if len(arg) == 0 or arg == "tk":
+        if not arg_lst or "-tk" in arg_lst:
             if flag_has_tk:
                 root = Tk()
                 root.withdraw()
@@ -64,7 +64,8 @@ Use 'help' to see help ...\
             else:
                 print(f"""{global_const.TERMCOLOR.YELLOW}Cannot find module \
 'tkinter', input path by terminal line instead""")
-                path = input("hexmap file (*.hgdata) path: ")
+                path = input(f"""hexmap file (*.hgdata) path: \
+{global_const.TERMCOLOR.DEFAULT}""")
         else:
             path = arg
         if path == "":
@@ -125,21 +126,26 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
             self.data.map_dict["<floor>"][pos] = floor_elem
             self.mapcanvas.draw_single_hex_floor(pos,
                                                  self.data.color[color_id])
-            # self.data.color.append(loadmap.MapSave_color.MapSave_row([color_raw]))
 
     def do_save(self, arg: str):
         "save the map file"
         arg_lst = arg.split()
-        if len(arg_lst) == 0 or arg_lst[0] == "tk":
-            root = Tk()
-            root.withdraw()
-            root.wm_attributes('-topmost', 1)
-            path = filedialog.asksaveasfilename(initialdir=".", filetypes=[(
-                "hexgrid data file", ".hgdata"), ("all files", ".*")],
-                parent=root, title="select hex grid save file",
-                defaultextension='.hgdata')
-            print(path)
-            root.destroy()
+        if not arg_lst or "-tk" in arg_lst:
+            if flag_has_tk:
+                root = Tk()
+                root.withdraw()
+                root.wm_attributes('-topmost', 1)
+                path = filedialog.asksaveasfilename(initialdir=".", filetypes=[
+                    ("hexgrid data file", ".hgdata"), ("all files", ".*")],
+                    parent=root, title="select hex grid save file",
+                    defaultextension='.hgdata')
+                print(path)
+                root.destroy()
+            else:
+                print(f"""{global_const.TERMCOLOR.YELLOW}Cannot find module \
+'tkinter', input path by terminal line instead""")
+                path = input(f"""hexmap file (*.hgdata) path: \
+{global_const.TERMCOLOR.DEFAULT}""")
         else:
             path = arg
         self.data.save(path)
@@ -147,17 +153,23 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
     def do_render(self, arg: str):
         "render the map picture (.png) and save it"
         arg_lst = arg.split()
-        if len(arg_lst) == 0 or arg_lst[0] == "tk":
-            root = Tk()
-            root.withdraw()
-            # root.
-            root.wm_attributes('-topmost', 1)
-            path = filedialog.asksaveasfilename(initialdir=".", filetypes=[(
-                "png file", ".png"), ("all files", ".*")],
-                parent=root, title="select hex grid save file",
-                defaultextension=".png")
-            print(path)
-            root.destroy()
+        if not arg_lst or "-tk" in arg_lst:
+            if flag_has_tk:
+                root = Tk()
+                root.withdraw()
+                # root.
+                root.wm_attributes('-topmost', 1)
+                path = filedialog.asksaveasfilename(initialdir=".", filetypes=[
+                    ("png file", ".png"), ("all files", ".*")],
+                    parent=root, title="select hex grid save file",
+                    defaultextension=".png")
+                print(path)
+                root.destroy()
+            else:
+                print(f"""{global_const.TERMCOLOR.YELLOW}Cannot find module \
+'tkinter', input path by terminal line instead""")
+                path = input(f"""hexmap file (*.hgdata) path: \
+{global_const.TERMCOLOR.DEFAULT}""")
         else:
             path = arg
         color_print("- start -", lvl=2)

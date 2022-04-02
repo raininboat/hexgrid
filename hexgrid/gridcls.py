@@ -20,8 +20,10 @@ import re
 from math import log
 from typing import overload
 
+from objprint import op
+
 # import hexgrid
-from hexgrid import global_const, misc
+from . import global_const, misc
 
 
 class Pos:
@@ -141,9 +143,9 @@ class Pos:
             return ""
         return f"{self.str_x}{self.point_y}"
 
-    def __eq__(self, __o: object):
+    def __eq__(self, __o):
         if type(__o) is Pos:
-            if self.point_x != __o._x or self.point_y != __o._y:
+            if self.point_x != __o.point_x or self.point_y != __o.point_y:
                 return False
         elif type(__o) is tuple:
             if self.point_x != __o[0] or self.point_y != __o[1]:
@@ -159,7 +161,7 @@ class Pos:
         return self.show_pos
 
 
-class Grid(object):
+class Grid:
     def __init__(self, map_save_dict=None):
         if map_save_dict is None:
             map_save_dict = {}
@@ -192,11 +194,13 @@ class Grid(object):
         # TODO: save map
         "save the hexmap"
         print(f"""{misc.COLOR.YELLOW}save map is currently not \
-supported{misc.COLOR.DEFAULT} - {misc.COLOR.GREEN}path: {path}\
-""")
+supported{misc.COLOR.DEFAULT} - {misc.COLOR.GREEN}path: {path}
+{misc.COLOR.GREEN}data:""")
+        op(self)
 
 
-class _MapGridElementTemplate:
+class MapGridElementTemplate:
+    "basic hexgrid row element template"
     # def __init__(self, row_data_list):
     #     "the init method should be override"
     #     self.data = row_data_list
@@ -223,7 +227,7 @@ class _MapGridElementTemplate:
 
 class Node:
     "All the map nodes, the lines in the save file"
-    class Floor(_MapGridElementTemplate):
+    class Floor(MapGridElementTemplate):
         def __init__(self, pos: Pos, color_id):
             self.pos = pos
             self.color = color_id
@@ -233,7 +237,7 @@ class Node:
                 [self.pos, self.color]
             )
 
-    class Set(_MapGridElementTemplate):
+    class Set(MapGridElementTemplate):
         def __init__(self, x_max, y_max, _r, name):
             self.x_max = int(x_max)
             self.y_max = int(y_max)
@@ -251,7 +255,7 @@ class Node:
             return self._RowIter([self.x_max, self.y_max,
                                   self._r, self.name])
 
-    class Item(_MapGridElementTemplate):
+    class Item(MapGridElementTemplate):
         def __init__(self, id_, name, color_id, type_id, pos: Pos):
             self.id = id_
             self.name = name
@@ -273,7 +277,7 @@ class Node:
                 )]
             )
 
-    class User(_MapGridElementTemplate):
+    class User(MapGridElementTemplate):
         def __init__(self, uid, hash_):
             self.uid = uid
             self.hash = hash_
@@ -281,7 +285,7 @@ class Node:
         def __iter__(self):
             return self._RowIter([self.uid, self.hash])
 
-    class Player(_MapGridElementTemplate):
+    class Player(MapGridElementTemplate):
         def __init__(self, id_, name, uid, color_id, type_id, pos: Pos):
             self.id = id_
             self.name = name
@@ -304,7 +308,7 @@ class Node:
                 )]
             )
 
-    class Color(_MapGridElementTemplate):
+    class Color(MapGridElementTemplate):
         def __init__(self, color):
             # self.id = int(row_data_list[0])
             self.color = color
@@ -330,7 +334,7 @@ class Node:
             )
 
 
-class GridNode(object):
+class GridNode:
     def __init__(self, data=None, pos=None):
         """
         `pos`: the position of the node -> tuple (_x, _y) or pos("a", 0)

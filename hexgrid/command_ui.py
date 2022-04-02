@@ -18,19 +18,24 @@
 
 import cmd
 import time
-from tkinter import Tk, filedialog
 
 from objprint import op
 
-from . import create_grid_pic, global_const, gridcls, loadmap
+from . import __version__, create_grid_pic, global_const, gridcls, loadmap
+
+flag_has_tk: bool = True
+try:
+    from tkinter import Tk, filedialog
+except ImportError:
+    flag_has_tk: bool = False
 
 
 class MapEditInterface(cmd.Cmd):
     "The Command Line User Interface of Hexgrid"
-    intro = """\
-Welcome to Map Editor of hexgrid V0.1(DEMO Version)
+    intro = f"""{global_const.TERMCOLOR.GREEN}\
+Welcome to Map Editor of hexgrid V{__version__}{global_const.TERMCOLOR.DEFAULT}
 This is a terminal based interface of map editor
-Use '.help' to see help ...
+Use 'help' to see help ...\
 """
     prompt = "\033[32mhexgrid \033[0m> "
     data = None
@@ -45,15 +50,21 @@ Use '.help' to see help ...
         # args = arg.split()
         if self.data is not None:
             self.data = None
+        path: str = None
         if len(arg) == 0 or arg == "tk":
-            root = Tk()
-            root.withdraw()
-            # root.
-            root.wm_attributes('-topmost', 1)
-            path = filedialog.askopenfilename(initialdir=".", filetypes=[(
-                "hexgrid save file", ".hgdata"), ("all files", ".*")],
-                parent=root, title="select hex grid save file")
-            root.destroy()
+            if flag_has_tk:
+                root = Tk()
+                root.withdraw()
+                # root.
+                root.wm_attributes('-topmost', 1)
+                path = filedialog.askopenfilename(initialdir=".", filetypes=[(
+                    "hexgrid save file", ".hgdata"), ("all files", ".*")],
+                    parent=root, title="select hex grid save file")
+                root.destroy()
+            else:
+                print(f"""{global_const.TERMCOLOR.YELLOW}Cannot find module \
+'tkinter', input path by terminal line instead""")
+                path = input("hexmap file (*.hgdata) path: ")
         else:
             path = arg
         if path == "":
@@ -99,7 +110,7 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
             if len(arg) < 3:
                 color_print("Input ERR", lvl=5)
                 self.do_help("add")
-                return False
+                return
             pos = gridcls.Pos(pos=arg[1])
             color_raw = arg[2]
             color_id = None

@@ -18,10 +18,11 @@
 
 import re
 
-import hexgrid
+# import hexgrid
+from . import gridcls, misc
 
-Node = hexgrid.gridcls.Node
-unescape = hexgrid.misc.unescape
+Node = gridcls.Node
+unescape = misc.unescape
 
 
 class _MapSaveClsTemplate:
@@ -50,10 +51,10 @@ class _MapSaveClsTemplate:
     def __iter__(self):
         return self._MapSaveIter(self, needTag=False)
 
-    class _MapSaveRow(hexgrid.gridcls._MapGridElementTemplate):
+    class _MapSaveRow(gridcls.MapGridElementTemplate):
         "basic_tamplate"
 
-    class _MapSaveIter(object):
+    class _MapSaveIter:
         __sep = "|"
 
         def __init__(self, MapObj, needTag=False):
@@ -87,8 +88,7 @@ class MapSave:
         def has_color(self, strrgb):
             if strrgb in self.data:
                 return True
-            else:
-                return False
+            return False
 
         def get_color(self, color_id: int):
             if color_id >= len(self.data):
@@ -101,15 +101,13 @@ class MapSave:
         def add_color(self, strrgb):
             if self.has_color(strrgb):
                 return self.index(strrgb)
-            else:
-                self.feed_line(strrgb)
-                return self.index(strrgb)
+            self.feed_line(strrgb)
+            return self.index(strrgb)
 
         def index(self, strrgb):
             if self.has_color(strrgb):
                 return self.data.index(strrgb)
-            else:
-                return None
+            return None
 
         class _MapSaveRow(Node.Color):
             def __init__(self, row_data_list):
@@ -121,7 +119,7 @@ class MapSave:
 
         class _MapSaveRow(Node.Floor):
             def __init__(self, row_data_list):
-                self.pos = hexgrid.gridcls.Pos(row_data_list[0])
+                self.pos = gridcls.Pos(row_data_list[0])
                 self.color = row_data_list[1]
 
     class Set(_MapSaveClsTemplate):
@@ -146,7 +144,7 @@ class MapSave:
                 self.name = row_data_list[1]
                 self.color = int(row_data_list[2])
                 self.type = int(row_data_list[3])
-                self.pos = hexgrid.gridcls.Pos(pos=row_data_list[4])
+                self.pos = gridcls.Pos(pos=row_data_list[4])
 
     class User(_MapSaveClsTemplate):
         def __init__(self):
@@ -168,7 +166,7 @@ class MapSave:
                 self.uid = row_data_list[2]
                 self.color = int(row_data_list[3])
                 self.type = int(row_data_list[4])
-                self.pos = hexgrid.gridcls.Pos(pos=row_data_list[5])
+                self.pos = gridcls.Pos(pos=row_data_list[5])
 
 
 __tag_class = {
@@ -183,6 +181,7 @@ __tag_class = {
 
 
 def load_file(path, encode="utf-8"):
+    "load the hexgrid save file"
     with open(path, mode="r", encoding=encode) as f:
         p = re.compile(r"^(\<\w+\>)+$")
         this_tag = "init"
@@ -198,12 +197,12 @@ def load_file(path, encode="utf-8"):
                 continue
             if this_tag in __tag_class.keys():
                 ret[this_tag].feed_line(line)
-    grid = hexgrid.gridcls.Grid(ret)
+    grid = gridcls.Grid(ret)
     return grid
 
 
 if __name__ == "__main__":
-    path = "./sample/save.hgdata"
-    file = load_file(path)
+    demo_path = "./sample/save.hgdata"
+    file = load_file(demo_path)
     print(file)
     # print("\n".join(file["<set>"].get_line_save()))

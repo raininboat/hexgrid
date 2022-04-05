@@ -1,9 +1,9 @@
 # HEXGRID 六角格地图编辑
 ![六角格预览](./sample/sample_grid.png)
 # LICENCE
-open source under Apache License
+Licensed under Apache License
 ~~~
-   Copyright [2022] [Thunderain Zhou]
+   Copyright 2022 Thunderain Zhou
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

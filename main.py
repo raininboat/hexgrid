@@ -15,31 +15,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-from .global_const import TERMCOLOR as COLOR
 
-__escape_list = [
-    ("&", "&#38;"),
-    ("|", "&#124;")
-]
-
-
-def escape(txt: str):
-    "use it to save map files"
-    this_list = __escape_list.copy()    # shallow copy
-    for i, j in this_list:
-        txt = txt.replace(i, j)
-    return txt
-
-
-def unescape(txt: str):
-    "use it to load map files"
-    this_list = __escape_list.copy()    # shallow copy
-    this_list.reverse()
-    for i, j in this_list:
-        txt = txt.replace(j, i)
-    return txt
-
-
-def set_color(color, text) -> str:
-    "set text color for terminal output"
-    return f"{color}{text}{COLOR.DEFAULT}"
+if __name__ == "__main__":
+    from hexgrid import command_ui
+    term = command_ui.MapEditInterface()
+    term.cmdloop()

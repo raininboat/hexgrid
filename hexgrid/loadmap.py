@@ -1,11 +1,33 @@
+# -*- encoding: utf-8 -*-
+"""
+   Hexgrid by Thunderain Zhou
+   Copyright 2022 Thunderain Zhou
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+
 import re
-import hexgrid
 
-Node = hexgrid.gridcls.Node
-unescape = hexgrid.misc.unescape
+import objprint
+
+# import hexgrid
+from . import gridcls, misc
+
+Node = gridcls.Node
+unescape = misc.unescape
 
 
-class MapSaveClsTamplate(object):
+class _MapSaveClsTemplate:
     def __init__(self, tag="<unknown>"):
         self.tag = tag
         self.data = []
@@ -23,170 +45,169 @@ class MapSaveClsTamplate(object):
 
     def _data_line(self, this_line_list):
         "override this to set data class"
-        return self.MapSave_row(this_line_list)
+        return self._MapSaveRow(this_line_list)
 
     def get_line_save(self):
-        return self.MapSave_iter(self, needTag=True)
+        return self._MapSaveIter(self, need_tag=True)
 
     def __iter__(self):
-        return self.MapSave_iter(self, needTag=False)
+        return self._MapSaveIter(self, need_tag=False)
 
-    class MapSave_row(hexgrid.gridcls.MapGridElement_tamplate):
+    class _MapSaveRow(gridcls.MapGridElementTemplate):
         "basic_tamplate"
 
-    class MapSave_iter(object):
+    class _MapSaveIter:
         __sep = "|"
 
-        def __init__(self, MapObj, needTag=False):
-            self.MapObj = MapObj
+        def __init__(self, map_obj, need_tag=False):
+            self.map_obj = map_obj
             self.index = 0
-            if needTag:
+            if need_tag:
                 self.index -= 1
 
         def __iter__(self):
             return self
 
         def __next__(self):
-            if self.index >= len(self.MapObj.data):
+            if self.index >= len(self.map_obj.data):
                 raise StopIteration()
             if self.index < 0:
                 # return tag
                 self.index += 1
-                return self.MapObj.tag
-            tmp_data = self.MapObj.data[self.index]
+                return self.map_obj.tag
+            tmp_data = self.map_obj.data[self.index]
             ret = self.__sep.join(tmp_data)
             self.index += 1
             return ret
 
 
-class MapSave_color(MapSaveClsTamplate):
-    def __init__(self):
-        super().__init__("<color>")
+class MapSave:
+    "all the save items loaded, name is just like the gridcls.Node"
+    class Color(_MapSaveClsTemplate):
+        def __init__(self):
+            super().__init__("<color>")
 
-    def has_color(self, strrgb):
-        if strrgb in self.data:
-            return True
-        else:
+        def has_color(self, strrgb):
+            if strrgb in self.data:
+                return True
             return False
 
-    def get_color(self, color_id: int):
-        if color_id >= len(self.data):
-            print("ERROR, NO COLOR - {}".format(color_id))
-            import objprint
-            objprint.op(self)
-            return None
-        return self.data[color_id].color
+        def get_color(self, color_id: int):
+            if color_id >= len(self.data):
+                print(f"ERROR, NO COLOR - {color_id}")
+                objprint.op(self)
+                return None
+            return self.data[color_id].color
 
-    def add_color(self, strrgb):
-        if self.has_color(strrgb):
-            return self.index(strrgb)
-        else:
+        def add_color(self, strrgb):
+            if self.has_color(strrgb):
+                return self.index(strrgb)
             self.feed_line(strrgb)
             return self.index(strrgb)
 
-    def index(self, strrgb):
-        if self.has_color(strrgb):
-            return self.data.index(strrgb)
-        else:
+        def index(self, strrgb):
+            if self.has_color(strrgb):
+                return self.data.index(strrgb)
             return None
 
-    class MapSave_row(Node.color):
-        def __init__(self, row_data_list):
-            self.color = row_data_list[0]
+        class _MapSaveRow(Node.Color):
+            def __init__(self, row_data_list):
+                super().__init__(
+                    color=row_data_list[0]
+                )
 
+    class Floor(_MapSaveClsTemplate):
+        def __init__(self):
+            super().__init__("<floor>")
 
-class MapSave_floor(MapSaveClsTamplate):
-    def __init__(self):
-        super().__init__("<floor>")
+        class _MapSaveRow(Node.Floor):
+            def __init__(self, row_data_list):
+                super().__init__(
+                    pos=gridcls.Pos(row_data_list[0]),
+                    color=row_data_list[1]
+                )
 
-    class MapSave_row(Node.floor):
-        def __init__(self, row_data_list):
-            self.pos = hexgrid.gridcls.Pos(row_data_list[0])
-            self.color = row_data_list[1]
+    class Set(_MapSaveClsTemplate):
+        def __init__(self):
+            super().__init__("<set>")
 
+        class _MapSaveRow(Node.Set):
+            def __init__(self, row_data_list):
+                super().__init__(
+                    x_max=int(row_data_list[0]),
+                    y_max=int(row_data_list[1]),
+                    r=int(row_data_list[2]),      # TODO: 存档六角格半径可变
+                    name=row_data_list[3],
+                )
 
-class MapSave_set(MapSaveClsTamplate):
-    def __init__(self):
-        super().__init__("<set>")
+    class Item(_MapSaveClsTemplate):
+        def __init__(self):
+            super().__init__(tag="<item>")
 
-    class MapSave_row(Node.set):
-        def __init__(self, row_data_list):
-            self.x_max = int(row_data_list[0])
-            self.y_max = int(row_data_list[1])
-            self.r = int(row_data_list[2])      # TODO: 存档六角格半径可变
-            self.name = row_data_list[3]
+        class _MapSaveRow(Node.Item):
+            def __init__(self, row_data_list):
+                super().__init__(
+                    id=row_data_list[0],
+                    name=row_data_list[1],
+                    color=int(row_data_list[2]),
+                    type=int(row_data_list[3]),
+                    pos=gridcls.Pos(pos=row_data_list[4]),
+                )
 
+    class User(_MapSaveClsTemplate):
+        def __init__(self):
+            super().__init__(tag="<user>")
 
-class MapSave_item(MapSaveClsTamplate):
-    def __init__(self):
-        super().__init__(tag="<item>")
+        class _MapSaveRow(Node.User):
+            def __init__(self, row_data_list):
+                super().__init__(
+                    uid=row_data_list[0],
+                    hash=row_data_list[1],
+                )
 
-    class MapSave_row(Node.item):
-        def __init__(self, row_data_list):
-            self.id = row_data_list[0]
-            self.name = row_data_list[1]
-            self.color = int(row_data_list[2])
-            self.type = int(row_data_list[3])
-            self.pos = hexgrid.gridcls.Pos(pos=row_data_list[4])
+    class Player(_MapSaveClsTemplate):
+        def __init__(self):
+            super().__init__(tag="<player>")
 
-
-class MapSave_user(MapSaveClsTamplate):
-    def __init__(self):
-        super().__init__(tag="<user>")
-
-    class MapSave_row(Node.user):
-        def __init__(self, row_data_list):
-            self.uid = row_data_list[0]
-            self.hash = row_data_list[1]
-
-
-class MapSave_player(MapSaveClsTamplate):
-    def __init__(self):
-        super().__init__(tag="<player>")
-
-    class MapSave_row(Node.player):
-        def __init__(self, row_data_list):
-            self.id = row_data_list[0]
-            self.name = row_data_list[1]
-            self.uid = row_data_list[2]
-            self.color = int(row_data_list[3])
-            self.type = int(row_data_list[4])
-            self.pos = hexgrid.gridcls.Pos(pos=row_data_list[5])
+        class _MapSaveRow(Node.Player):
+            def __init__(self, row_data_list):
+                super().__init__(
+                    id=row_data_list[0],
+                    name=row_data_list[1],
+                    uid=row_data_list[2],
+                    color=int(row_data_list[3]),
+                    type=int(row_data_list[4]),
+                    pos=gridcls.Pos(pos=row_data_list[5]),
+                )
 
 
 __tag_class = {
-    "<unknown>": MapSaveClsTamplate,
-    "<set>": MapSave_set,
-    "<item>": MapSave_item,
-    "<user>": MapSave_user,
-    "<player>": MapSave_player,
-    "<color>": MapSave_color,
-    "<floor>": MapSave_floor
+    "<unknown>": _MapSaveClsTemplate,
+    "<set>": MapSave.Set,
+    "<item>": MapSave.Item,
+    "<user>": MapSave.User,
+    "<player>": MapSave.Player,
+    "<color>": MapSave.Color,
+    "<floor>": MapSave.Floor
 }
 
 
 def load_file(path, encode="utf-8"):
-    with open(path, mode="r", encoding=encode) as f:
-        p = re.compile(r"^(\<\w+\>)+$")
+    "load the hexgrid save file"
+    with open(path, mode="r", encoding=encode) as file:
+        re_comp = re.compile(r"^(\<\w+\>)+$")
         this_tag = "init"
         ret = {}
-        for line in f:
+        for line in file:
             # remove the enter \n at end of each line
             line = line.rstrip("\n")
-            this_match = p.match(line)
+            this_match = re_comp.match(line)
             if this_match is not None:
                 this_tag = this_match.group()
-                if this_tag in __tag_class.keys():
+                if this_tag in __tag_class:
                     ret[this_tag] = __tag_class[this_tag]()
                 continue
-            if this_tag in __tag_class.keys():
+            if this_tag in __tag_class:
                 ret[this_tag].feed_line(line)
-    grid = hexgrid.gridcls.Grid(ret)
+    grid = gridcls.Grid(ret)
     return grid
-
-
-if __name__ == "__main__":
-    path = "./sample/save.hgdata"
-    file = load_file(path)
-    print(file)
-    # print("\n".join(file["<set>"].get_line_save()))

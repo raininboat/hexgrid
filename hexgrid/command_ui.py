@@ -1,18 +1,49 @@
+# -*- encoding: utf-8 -*-
+"""
+   Hexgrid by Thunderain Zhou
+   Copyright 2022 Thunderain Zhou
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+
 import cmd
-from tkinter import filedialog, Tk, colorchooser
-import hexgrid
-from objprint import op
 import time
 
+from objprint import op
+
+from . import __version__, create_grid_pic, global_const, gridcls, loadmap
+
+flag_has_tk: bool = True
+try:
+    from tkinter import Tk, filedialog
+except ImportError:
+    flag_has_tk: bool = False
+
+
 class MapEditInterface(cmd.Cmd):
-    intro = """\
-Welcome to Map Editor of hexgrid V0.1(DEMO Version)
+    "The Command Line User Interface of Hexgrid"
+    intro = f"""{global_const.TERMCOLOR.GREEN}\
+Welcome to Map Editor of hexgrid V{__version__}{global_const.TERMCOLOR.DEFAULT}
 This is a terminal based interface of map editor
-Use '.help' to see help ...
+Use 'help' to see help ...\
 """
     prompt = "\033[32mhexgrid \033[0m> "
-    data = None
-    mapcanvas = None
+
+    def __init__(self, completekey=None, stdin=None, stdout=None) -> None:
+        super().__init__(completekey, stdin, stdout)
+        self.data = None
+        self.mapcanvas = None
+        self.log = LogCls()
 
     def emptyline(self):
         return False
@@ -20,50 +51,57 @@ Use '.help' to see help ...
     def do_load(self, arg: str):
         "load [path]|'tk'"
         # print(arg.split())
-        # args = arg.split()
+        arg_lst = arg.split()
         if self.data is not None:
             self.data = None
-        if len(arg) == 0 or arg == "tk":
-            rt = Tk()
-            rt.withdraw()
-            # rt.
-            rt.wm_attributes('-topmost', 1)
-            path = filedialog.askopenfilename(initialdir=".", filetypes=[(
-                "hexgrid save file", ".hgdata"), ("all files", ".*")],
-                parent=rt, title="select hex grid save file")
-            rt.destroy()
+        path: str = None
+        if not arg_lst or "-tk" in arg_lst:
+            if flag_has_tk:
+                root = Tk()
+                root.withdraw()
+                # root.
+                root.wm_attributes('-topmost', 1)
+                path = filedialog.askopenfilename(initialdir=".", filetypes=[(
+                    "hexgrid save file", ".hgdata"), ("all files", ".*")],
+                    parent=root, title="select hex grid save file")
+                root.destroy()
+            else:
+                self.log.info("Cannot find module 'tkinter', input path by \
+terminal line instead")
+                path = input(f"""hexmap file (*.hgdata) path: \
+{global_const.TERMCOLOR.DEFAULT}""")
         else:
             path = arg
         if path == "":
-            color_print("cancelled", lvl=1)
+            self.log.info("cancelled")
             return False
-        color_print("- start -",lvl=2)
-        t = time.time()
-        self.data = hexgrid.loadmap.load_file(path)
-        self.mapcanvas = hexgrid.create_grid_pic.MapCanvas(self.data)
-        self.mapcanvas.craete_map()
-        color_print("time used - {0}".format(time.time()-t),lvl=2)
+        self.log.info("- load start -")
+        _t = time.time()
+        self.data = loadmap.load_file(path)
+        self.mapcanvas = create_grid_pic.MapCanvas(self.data)
+        self.log.info("time used: {0}", time.time() - _t)
+        # color_print(f"time used - {time.time()-_t}", lvl=2)
         return False
 
-    def do_status(self, arg: str):
-        op(self.data)
+    def do_status(self, *args):
+        "return status"
+        op(self.data, args)
 
-    def do_show(self, arg: str):
-        pass
-
-    def do_preview(self, arg: str):
+    def do_preview(self, *_):
+        "preview the hexmap picture"
         if self.mapcanvas is not None:
-            color_print("- start -",lvl=2)
-            t = time.time()
-            preview = self.mapcanvas.image.copy()
-            size = self.mapcanvas.image.size
-            preview.resize((int(size[0]/1.5), int(size[1]/1.5)),1)
-            preview.show()
-            color_print("time used - {0}".format(time.time()-t),lvl=2)
-
+            self.log.info("- preview start -")
+            _t = time.time()
+            if not self.mapcanvas.map_created:
+                self.mapcanvas.craete_map()
+            img = self.mapcanvas.output()
+            # img.show()
+            self.log.info(f"time used: {time.time() - _t}")
+            img.show()
+            img.close()
             # self.mapcanvas.image.show("image preview")
         else:
-            color_print("please (load) file first", lvl=3)
+            self.log.error("please (load) file first")
 
     def do_add(self, raw_arg: str):
         """\
@@ -76,10 +114,10 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
         arg = raw_arg.split()
         if arg[0] == "floor":
             if len(arg) < 3:
-                color_print("Input ERR", lvl=5)
+                self.log.error("Input ERROR")
                 self.do_help("add")
-                return False
-            pos = hexgrid.gridcls.Pos(pos=arg[1])
+                return
+            pos = gridcls.Pos(pos=arg[1])
             color_raw = arg[2]
             color_id = None
             if color_raw.startswith("#"):
@@ -89,79 +127,137 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
                     color_id = self.data.color.add_color(color_raw)
             elif color_raw.isalnum():
                 color_id = int(color_raw)
-            a = hexgrid.loadmap.MapSave_floor.MapSave_row()
-            self.data.map_dict["<floor>"][pos]
-            # self.data.color.append(hexgrid.loadmap.MapSave_color.MapSave_row([color_raw]))
+            floor_elem = gridcls.Node.Floor(pos, color_id)
+            self.data.map_dict["<floor>"][pos] = floor_elem
+            self.mapcanvas.draw_single_hex_floor(pos,
+                                                 self.data.color[color_id])
 
     def do_save(self, arg: str):
+        "save the map file"
         arg_lst = arg.split()
-        if len(arg_lst) == 0 or arg_lst[0] == "tk":
-            rt = Tk()
-            rt.withdraw()
-            # rt.
-            rt.wm_attributes('-topmost', 1)
-            path = filedialog.asksaveasfilename(initialdir=".", filetypes=[(
-                "hexgrid data file", ".hgdata"), ("all files", ".*")],
-                parent=rt, title="select hex grid save file",
-                defaultextension='.hgdata')
-            print(path)
-            rt.destroy()
+        if not arg_lst or "-tk" in arg_lst:
+            if flag_has_tk:
+                root = Tk()
+                root.withdraw()
+                root.wm_attributes('-topmost', 1)
+                path = filedialog.asksaveasfilename(initialdir=".", filetypes=[
+                    ("hexgrid data file", ".hgdata"), ("all files", ".*")],
+                    parent=root, title="select hex grid save file",
+                    defaultextension='.hgdata')
+                print(path)
+                root.destroy()
+            else:
+                self.log.info("Cannot find module 'tkinter', input path by \
+terminal line instead")
+                path = input(f"""hexmap file (*.hgdata) path: \
+{global_const.TERMCOLOR.DEFAULT}""")
+        else:
+            path = arg
+        if path == "":
+            self.log.info("cancelled")
+            return
+        self.data.save(path)
 
     def do_render(self, arg: str):
+        "render the map picture (.png) and save it"
         arg_lst = arg.split()
-        if len(arg_lst) == 0 or arg_lst[0] == "tk":
-            rt = Tk()
-            rt.withdraw()
-            # rt.
-            rt.wm_attributes('-topmost', 1)
-            path = filedialog.asksaveasfilename(initialdir=".", filetypes=[(
-                "png file", ".png"), ("all files", ".*")],
-                parent=rt, title="select hex grid save file",
-                defaultextension=".png")
-            print(path)
-            rt.destroy()
+        if not arg_lst or "-tk" in arg_lst:
+            if flag_has_tk:
+                root = Tk()
+                root.withdraw()
+                # root.
+                root.wm_attributes('-topmost', 1)
+                path = filedialog.asksaveasfilename(
+                    initialdir=".",
+                    filetypes=[ ("jpg file", ".jpg"), ("png file", ".png"),
+                        ("all files", ".*"),],
+                    parent=root, title="select hex grid save file",
+                    defaultextension=".png")
+                print(path)
+                root.destroy()
+            else:
+                print(f"""{global_const.TERMCOLOR.YELLOW}Cannot find module \
+'tkinter', input path by terminal line instead""")
+                path = input(f"""hexmap file (*.hgdata) path: \
+{global_const.TERMCOLOR.DEFAULT}""")
         else:
-            pass
-        pass
-        color_print("- start -",lvl=2)
-        t = time.time()
-        self.mapcanvas.image.save(path)
-        color_print("time used - {0}".format(time.time()-t),lvl=2)
+            path = arg
+        if path == "":
+            self.log.info("cancelled")
+            return
+        self.log.info("- render start -")
+        _t = time.time()
+        if not self.mapcanvas.map_created:
+            self.mapcanvas.craete_map()
+        img = self.mapcanvas.output()
+        img.save(path)
+        self.log.info(f"time used - {time.time()-_t}")
+        img.close()
 
-    def do_exit(self, arg: str):
+    @classmethod
+    def do_exit(cls, *_):
+        "exit the terminal"
         return True
 
 
-def color_print(text, lvl=None):
-    """
-    `default` -> `None`
-    `green` -> 0
-    `blue` -> 1
-    `cyan` -> 2
-    `yellow` -> 3
-    `purple` -> 4
-    `red` -> 5
-    `white` -> -1
-    """
-    tc = hexgrid.global_const.TERMCOLOR
-    if lvl is None:
-        print(tc.DEFAULT, text, tc.DEFAULT)
-    elif lvl == 0:
-        print(tc.GREEN, text, tc.DEFAULT)
-    elif lvl == 1:
-        print(tc.BLUE, text, tc.DEFAULT)
-    elif lvl == 2:
-        print(tc.CYAN, text, tc.DEFAULT)
-    elif lvl == 3:
-        print(tc.YELLOW, text, tc.DEFAULT)
-    elif lvl == 4:
-        print(tc.PURPLE, text, tc.DEFAULT)
-    elif lvl == 5:
-        print(tc.RED, text, tc.DEFAULT)
-    elif lvl == -1:
-        print(tc.WHITE, text, tc.DEFAULT)
-    else:
-        print(tc.DEFAULT, text, tc.DEFAULT)
+class LogCls:
+    "the local diagnose api cls"
+    def __init__(self, fmt=None, setlevel=0) -> None:
+        if fmt is None:
+            fmt = "{color}[{lvl}]: {message}{default_color}"
+        self._fmt = fmt
+        self._setlevel = setlevel
+
+    def log(self, *args, level, msg, **kwargs):
+        "print the log"
+        if level < self._setlevel:
+            return
+        if level >= 50:
+            lvl = "CRITICAL"
+            color = global_const.TERMCOLOR.RED
+        elif level >= 40:
+            lvl = "WARNING"
+            color = global_const.TERMCOLOR.PURPLE
+        elif level >= 30:
+            lvl = "ERROR"
+            color = global_const.TERMCOLOR.YELLOW
+        elif level >= 20:
+            lvl = "INFO"
+            color = global_const.TERMCOLOR.CYAN
+        elif level >= 10:
+            lvl = "DEBUG"
+            color = global_const.TERMCOLOR.GREEN
+        else:
+            lvl = "UNKNOWN"
+            color = global_const.TERMCOLOR.DEFAULT
+
+        # print(msg, args, )
+        text = str(msg).format(*args, **kwargs)
+        output_string = self._fmt.format(
+            color=color, lvl=lvl, message=text,
+            default_color=global_const.TERMCOLOR.DEFAULT
+        )
+        print(output_string)
+
+    def debug(self, msg, *args, **kwargs):
+        "print log in debug lvl"
+        self.log(level=10, msg=msg, *args, **kwargs)
+
+    def info(self, msg, *args, **kwargs):
+        "print log in info lvl"
+        self.log(level=20, msg=msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        "print log in error lvl"
+        self.log(level=30, msg=msg, *args, **kwargs)
+
+    def warning(self, msg, *args, **kwargs):
+        "print log in warning lvl"
+        self.log(level=40, msg=msg, args=args, kwargs=kwargs)
+
+    def critical(self, msg, *args, **kwargs):
+        "print log in critical lvl"
+        self.log(level=50, msg=msg, args=args, kwargs=kwargs)
 
 
 if __name__ == "__main__":

@@ -24,15 +24,18 @@ from . import global_const, gridcls, loadmap
 class MapCanvas:
     def __init__(self, data: gridcls.Grid):
         self.grid_data = data
+        self.map_created = False    # lazy create
         self.image = Image.new(
             mode="RGBA", size=self.grid_data.cfg.size,
             color=(255, 255, 255, 255))
         self._font_title = ImageFont.truetype(
-            global_const.FONT_TITLE_PATH, size=8)
+            global_const.FONT_TITLE_PATH, size=24)
         self._draw = ImageDraw.Draw(self.image, mode="RGBA")
 
     def draw_single_hex_floor(self, pos: gridcls.Pos, color):
         "draw the single floor (fill the target hexagon grid)"
+        if not self.map_created:
+            self.craete_map()
         points = pos.point_list_around()
         color_t = ImageColor.getrgb(color)
         self._draw.polygon(points, fill=color_t,
@@ -60,14 +63,13 @@ class MapCanvas:
                           text=None, mask_alpha=None):
         "draw a single stamp (item or player) on the map"
         # TODO: use google icons
+        if not self.map_created:
+            self.craete_map()
         stm = load_stamp(
-            stamp_type,
-            stamp_color_id
+            stamp_type, stamp_color_id
         ).resize(
-                (int((1.5 - global_const.PX_RATIO) *
-                     global_const.PX_R * 2),
-                 int((1.5 - global_const.PX_RATIO) *
-                     global_const.PX_R * 2))
+            (int((1.5 - global_const.PX_RATIO) * global_const.PX_R * 2),
+             int((1.5 - global_const.PX_RATIO) * global_const.PX_R * 2))
         )
         paste_bbox = pos.image_paste_box()
         alpha = stm.getchannel("A")
@@ -87,7 +89,7 @@ class MapCanvas:
             stamp_type = item.type
             stamp_color_id = item.color
             pos = item.pos
-            text = "i-{0}".format(item.id)
+            text = f"i-{item.id}"
             self.draw_single_stamp(
                 stamp_type=stamp_type, stamp_color_id=stamp_color_id,
                 pos=pos, text=(text, (0x7d, 0, 0, 0xff)))
@@ -97,22 +99,27 @@ class MapCanvas:
             stamp_type = item.type
             stamp_color_id = item.color
             pos = item.pos
-            text = "p-{0}".format(item.id)
+            text = f"p-{item.id}"
             self.draw_single_stamp(
                 stamp_type=stamp_type, stamp_color_id=stamp_color_id,
                 pos=pos, text=(text, (0, 0, 0x7d, 0xff)), mask_alpha=0xff)
 
     # @timeit.Timer
-    def craete_map(self, save_path=None):
+    def craete_map(self):
+        "draw the map according to the data"
+        self.map_created = True
         self._draw_floors()
         self._draw_map_grid()
         self._draw_items()
         self._draw_players()
-        # if save_path is None:
-        #     save_path = "./tmp/tmp_map.png"
-        # self.image.save(save_path)
-        print(f"""{global_const.TERMCOLOR.YELLOW}MapCanvas will not save map \
-when create a new map now - {save_path}""")
+
+    def output(self):
+        "the resized version for output (save or preview)"
+        size = self.image.size
+        img = self.image.resize((size[0]//2,size[1]//2),1)
+        img = img.convert("RGB")
+        # im.resize((im.size[0]//2,im.size[1]//2),1)
+        return img
 
     def __del__(self):
         self.image.close()

@@ -17,8 +17,9 @@
 """
 
 import re
+from dataclasses import dataclass
 from math import log
-from typing import overload
+from typing import Any, overload
 
 from objprint import op
 
@@ -56,7 +57,7 @@ class Pos:
 
     def _init_pos(self, pos: str):
         pos = pos.upper()
-        _r = re.match(r"([A-Z]+)(\d)+", pos)
+        _r = re.match(r"([A-Z]+)(\d+)", pos)
         if _r is None:
             raise ValueError(pos)
         x_str, y_str = _r.groups()
@@ -144,10 +145,10 @@ class Pos:
         return f"{self.str_x}{self.point_y}"
 
     def __eq__(self, __o):
-        if type(__o) is Pos:
+        if isinstance(__o, Pos):  # type(__o) is Pos:
             if self.point_x != __o.point_x or self.point_y != __o.point_y:
                 return False
-        elif type(__o) is tuple:
+        elif isinstance(__o, tuple): # type(__o) is tuple:
             if self.point_x != __o[0] or self.point_y != __o[1]:
                 return False
         else:
@@ -227,22 +228,24 @@ class MapGridElementTemplate:
 
 class Node:
     "All the map nodes, the lines in the save file"
+    @dataclass
     class Floor(MapGridElementTemplate):
-        def __init__(self, pos: Pos, color_id):
-            self.pos = pos
-            self.color = color_id
+        "the color of a specific hexagon grid"
+        pos: Pos
+        color: Any
 
         def __iter__(self):
             return self._RowIter(
                 [self.pos, self.color]
             )
 
+    @dataclass
     class Set(MapGridElementTemplate):
-        def __init__(self, x_max, y_max, _r, name):
-            self.x_max = int(x_max)
-            self.y_max = int(y_max)
-            self._r = int(_r)      # TODO: 存档六角格半径可变
-            self.name = name
+        "settings of the map"
+        x_max: int
+        y_max: int
+        _r: int      # TODO: 存档六角格半径可变
+        name: str
 
         @property
         def size(self):
@@ -255,19 +258,14 @@ class Node:
             return self._RowIter([self.x_max, self.y_max,
                                   self._r, self.name])
 
-    class Item(MapGridElementTemplate):
-        def __init__(self, id_, name, color_id, type_id, pos: Pos):
-            self.id = id_
-            self.name = name
-            self.color = int(color_id)
-            self.type = int(type_id)
-            self.pos = pos
-
-        # @property
-        # def stamp_file_name(self):
-        #     _t = stamp_load.RESOURCE_STAMP_TYPE[self.type]
-        #     c = self.color
-        #     return _t.format_map(color=c)
+    @dataclass
+    class Item(MapGridElementTemplate):  # TODO: load google icons
+        "the items put on the map"
+        id: int
+        name: str
+        color: int
+        type: int
+        pos: Pos
 
         def __iter__(self):
             return self._RowIter(
@@ -277,28 +275,24 @@ class Node:
                 )]
             )
 
-    class User(MapGridElementTemplate):
-        def __init__(self, uid, hash_):
-            self.uid = uid
-            self.hash = hash_
+    @dataclass
+    class User(MapGridElementTemplate):  # TODO: user set
+        "users on the map (currently useless)"
+        uid: str
+        hash: str
 
         def __iter__(self):
             return self._RowIter([self.uid, self.hash])
 
-    class Player(MapGridElementTemplate):
-        def __init__(self, id_, name, uid, color_id, type_id, pos: Pos):
-            self.id = id_
-            self.name = name
-            self.uid = uid
-            self.color = int(color_id)
-            self.type = int(type_id)
-            self.pos = pos
-
-        # @property
-        # def stamp_file_name(self):
-        #     _t = stamp_load.RESOURCE_STAMP_TYPE[self.type]
-        #     c = self.color
-        #     return _t.format_map(color=c)
+    @dataclass
+    class Player(MapGridElementTemplate):   # TODO: player
+        "user players on the map (currently same as `item`)"
+        id: int
+        name: str
+        uid: str
+        color: int
+        type: int
+        pos: Pos
 
         def __iter__(self):
             return self._RowIter(
@@ -308,10 +302,12 @@ class Node:
                 )]
             )
 
-    class Color(MapGridElementTemplate):
-        def __init__(self, color):
-            # self.id = int(row_data_list[0])
-            self.color = color
+    @dataclass
+    class Color(MapGridElementTemplate):    # TODO: color save and order
+        "colors used by `floor` (and `item`, `player` in the future)"
+        # NOTE: UNSTABLE, WILL CHANGE IN THE FUTURE
+        # self.id = int(row_data_list[0])
+        color: str
 
         def setcolor(self, new_color):
             self.color = new_color

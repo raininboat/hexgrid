@@ -19,7 +19,7 @@
 # all the global constants
 # the global default config of single hexagon
 PX_RATIO = 0.866    # sqrt(3)/2     y/x
-PX_R = 28           # hexagon radius
+PX_R = 60           # hexagon radius
 
 # the sesource stamp file path
 RESOURCE_STAMP_TYPE = [

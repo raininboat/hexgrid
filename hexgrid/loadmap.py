@@ -18,6 +18,8 @@
 
 import re
 
+import objprint
+
 # import hexgrid
 from . import gridcls, misc
 
@@ -93,7 +95,6 @@ class MapSave:
         def get_color(self, color_id: int):
             if color_id >= len(self.data):
                 print("ERROR, NO COLOR - {}".format(color_id))
-                import objprint
                 objprint.op(self)
                 return None
             return self.data[color_id].color
@@ -111,7 +112,9 @@ class MapSave:
 
         class _MapSaveRow(Node.Color):
             def __init__(self, row_data_list):
-                self.color = row_data_list[0]
+                super().__init__(
+                    color=row_data_list[0]
+                )
 
     class Floor(_MapSaveClsTemplate):
         def __init__(self):
@@ -119,8 +122,10 @@ class MapSave:
 
         class _MapSaveRow(Node.Floor):
             def __init__(self, row_data_list):
-                self.pos = gridcls.Pos(row_data_list[0])
-                self.color = row_data_list[1]
+                super().__init__(
+                    pos=gridcls.Pos(row_data_list[0]),
+                    color=row_data_list[1]
+                )
 
     class Set(_MapSaveClsTemplate):
         def __init__(self):
@@ -128,11 +133,12 @@ class MapSave:
 
         class _MapSaveRow(Node.Set):
             def __init__(self, row_data_list):
-                # super().__init__(*row_data_list)
-                self.x_max = int(row_data_list[0])
-                self.y_max = int(row_data_list[1])
-                self.r = int(row_data_list[2])      # TODO: 存档六角格半径可变
-                self.name = row_data_list[3]
+                super().__init__(
+                    x_max=int(row_data_list[0]),
+                    y_max=int(row_data_list[1]),
+                    r=int(row_data_list[2]),      # TODO: 存档六角格半径可变
+                    name=row_data_list[3],
+                )
 
     class Item(_MapSaveClsTemplate):
         def __init__(self):
@@ -140,11 +146,13 @@ class MapSave:
 
         class _MapSaveRow(Node.Item):
             def __init__(self, row_data_list):
-                self.id = row_data_list[0]
-                self.name = row_data_list[1]
-                self.color = int(row_data_list[2])
-                self.type = int(row_data_list[3])
-                self.pos = gridcls.Pos(pos=row_data_list[4])
+                super().__init__(
+                    id=row_data_list[0],
+                    name=row_data_list[1],
+                    color=int(row_data_list[2]),
+                    type=int(row_data_list[3]),
+                    pos=gridcls.Pos(pos=row_data_list[4]),
+                )
 
     class User(_MapSaveClsTemplate):
         def __init__(self):
@@ -152,8 +160,10 @@ class MapSave:
 
         class _MapSaveRow(Node.User):
             def __init__(self, row_data_list):
-                self.uid = row_data_list[0]
-                self.hash = row_data_list[1]
+                super().__init__(
+                    uid=row_data_list[0],
+                    hash=row_data_list[1],
+                )
 
     class Player(_MapSaveClsTemplate):
         def __init__(self):
@@ -161,12 +171,14 @@ class MapSave:
 
         class _MapSaveRow(Node.Player):
             def __init__(self, row_data_list):
-                self.id = row_data_list[0]
-                self.name = row_data_list[1]
-                self.uid = row_data_list[2]
-                self.color = int(row_data_list[3])
-                self.type = int(row_data_list[4])
-                self.pos = gridcls.Pos(pos=row_data_list[5])
+                super().__init__(
+                    id=row_data_list[0],
+                    name=row_data_list[1],
+                    uid=row_data_list[2],
+                    color=int(row_data_list[3]),
+                    type=int(row_data_list[4]),
+                    pos=gridcls.Pos(pos=row_data_list[5]),
+                )
 
 
 __tag_class = {

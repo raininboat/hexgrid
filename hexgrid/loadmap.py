@@ -48,10 +48,10 @@ class _MapSaveClsTemplate:
         return self._MapSaveRow(this_line_list)
 
     def get_line_save(self):
-        return self._MapSaveIter(self, needTag=True)
+        return self._MapSaveIter(self, need_tag=True)
 
     def __iter__(self):
-        return self._MapSaveIter(self, needTag=False)
+        return self._MapSaveIter(self, need_tag=False)
 
     class _MapSaveRow(gridcls.MapGridElementTemplate):
         "basic_tamplate"
@@ -59,23 +59,23 @@ class _MapSaveClsTemplate:
     class _MapSaveIter:
         __sep = "|"
 
-        def __init__(self, MapObj, needTag=False):
-            self.MapObj = MapObj
+        def __init__(self, map_obj, need_tag=False):
+            self.map_obj = map_obj
             self.index = 0
-            if needTag:
+            if need_tag:
                 self.index -= 1
 
         def __iter__(self):
             return self
 
         def __next__(self):
-            if self.index >= len(self.MapObj.data):
+            if self.index >= len(self.map_obj.data):
                 raise StopIteration()
             if self.index < 0:
                 # return tag
                 self.index += 1
-                return self.MapObj.tag
-            tmp_data = self.MapObj.data[self.index]
+                return self.map_obj.tag
+            tmp_data = self.map_obj.data[self.index]
             ret = self.__sep.join(tmp_data)
             self.index += 1
             return ret
@@ -94,7 +94,7 @@ class MapSave:
 
         def get_color(self, color_id: int):
             if color_id >= len(self.data):
-                print("ERROR, NO COLOR - {}".format(color_id))
+                print(f"ERROR, NO COLOR - {color_id}")
                 objprint.op(self)
                 return None
             return self.data[color_id].color
@@ -194,27 +194,20 @@ __tag_class = {
 
 def load_file(path, encode="utf-8"):
     "load the hexgrid save file"
-    with open(path, mode="r", encoding=encode) as f:
-        p = re.compile(r"^(\<\w+\>)+$")
+    with open(path, mode="r", encoding=encode) as file:
+        re_comp = re.compile(r"^(\<\w+\>)+$")
         this_tag = "init"
         ret = {}
-        for line in f:
+        for line in file:
             # remove the enter \n at end of each line
             line = line.rstrip("\n")
-            this_match = p.match(line)
+            this_match = re_comp.match(line)
             if this_match is not None:
                 this_tag = this_match.group()
-                if this_tag in __tag_class.keys():
+                if this_tag in __tag_class:
                     ret[this_tag] = __tag_class[this_tag]()
                 continue
-            if this_tag in __tag_class.keys():
+            if this_tag in __tag_class:
                 ret[this_tag].feed_line(line)
     grid = gridcls.Grid(ret)
     return grid
-
-
-if __name__ == "__main__":
-    demo_path = "./sample/save.hgdata"
-    file = load_file(demo_path)
-    print(file)
-    # print("\n".join(file["<set>"].get_line_save()))

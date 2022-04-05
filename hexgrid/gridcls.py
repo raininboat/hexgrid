@@ -64,8 +64,8 @@ class Pos:
         x_tmp = [int(_x - 0x40) for _x in x_str.encode(encoding="utf-8")]
         x_tmp.reverse()
         x_val = 0
-        for i in range(len(x_tmp)):
-            x_val += x_tmp[i] * (26 ** i)
+        for i, j in enumerate(x_tmp):    # range(len(x_tmp)):
+            x_val += j * (26 ** i)
         # x_val = int(x_str.encode(encoding="utf-8")[0]) - 0x40
         y_val = int(y_str)
         self.point_x = x_val
@@ -189,7 +189,7 @@ class Grid:
             elif tag == "<color>":
                 self.color = i
             else:
-                print("unknown tag '{0}'".format(tag))
+                print(f"unknown tag '{tag}'")
 
     def save(self, path):
         # TODO: save map
@@ -335,7 +335,7 @@ class GridNode:
         """
         `pos`: the position of the node -> tuple (_x, _y) or pos("a", 0)
         """
-        if type(pos) is tuple:
+        if isinstance(pos, tuple):
             pos = Pos(pos[0], pos[1])
         self.data = data
         self.pos = pos

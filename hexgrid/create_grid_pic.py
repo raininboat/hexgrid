@@ -18,10 +18,11 @@
 
 from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFont
 
-from . import global_const, gridcls, loadmap
+from . import global_const, gridcls
 
 
 class MapCanvas:
+    "the total canvas class"
     def __init__(self, data: gridcls.Grid):
         self.grid_data = data
         self.map_created = False    # lazy create
@@ -42,16 +43,16 @@ class MapCanvas:
                            outline=(0, 0, 0, 255), width=1)
 
     def _draw_floors(self):
-        for v in self.grid_data.map_dict["<floor>"].values():
-            pos = v.pos
-            color_id = int(v.color)
+        for i in self.grid_data.map_dict["<floor>"].values():
+            pos = i.pos
+            color_id = int(i.color)
             color = self.grid_data.color.get_color(color_id)
             self.draw_single_hex_floor(pos, color)
 
     def _draw_map_grid(self):
         for i in range(self.grid_data.cfg.x_max + 1):
-            for v in range(1, self.grid_data.cfg.y_max + 1):
-                x = gridcls.Pos(i, v)
+            for j in range(1, self.grid_data.cfg.y_max + 1):
+                x = gridcls.Pos(i, j)
                 self._draw.line(x.point_list_around(),
                                 fill=(0, 0, 0, 255), width=1)
                 txt = x.show_pos
@@ -126,14 +127,8 @@ class MapCanvas:
 
 
 def load_stamp(stamp_type, stamp_color_id):
+    "[WAITING FOR REFORM] load the stamp according to configures"
     path = global_const.RESOURCE_STAMP_TYPE[stamp_type].format(
         color=int(stamp_color_id))
     stm = Image.open(path)
     return stm
-
-
-if __name__ == "__main__":
-    test_path = "./sample/save.hgdata"
-    file = loadmap.load_file(test_path)
-    a = MapCanvas(file)
-    a.craete_map()

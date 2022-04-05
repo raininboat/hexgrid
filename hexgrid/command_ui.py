@@ -155,7 +155,7 @@ terminal line instead")
             path = arg
         if path == "":
             self.log.info("cancelled")
-            return False
+            return
         self.data.save(path)
 
     def do_render(self, arg: str):
@@ -184,7 +184,7 @@ terminal line instead")
             path = arg
         if path == "":
             self.log.info("cancelled")
-            return False
+            return
         self.log.info("- render start -")
         _t = time.time()
         if not self.mapcanvas.map_created:

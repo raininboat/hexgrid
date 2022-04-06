@@ -25,7 +25,7 @@ from . import __version__, create_grid_pic, global_const, gridcls, loadmap
 
 flag_has_tk: bool = True
 try:
-    from tkinter import Tk, filedialog
+    from tkinter import Tk, colorchooser, filedialog
 except ImportError:
     flag_has_tk: bool = False
 
@@ -53,7 +53,7 @@ Use 'help' to see help ...\
         # print(arg.split())
         arg_lst = arg.split()
         if self.data is not None:
-            self.data = None
+            self.do_clear(None)
         path: str = None
         if not arg_lst or "-tk" in arg_lst:
             if flag_has_tk:
@@ -87,6 +87,18 @@ terminal line instead")
         "return status"
         op(self.data, args)
 
+    def do_clear(self, _):
+        if self.data is not None:
+            self.data = None
+        if self.mapcanvas is None:
+            # self.log.debug("map unload")
+            return
+        if not self.mapcanvas.map_created:
+            self.mapcanvas = None
+        else:
+            self.mapcanvas.image.close()
+        self.log.info("map cleared")
+
     def do_preview(self, *_):
         "preview the hexmap picture"
         if self.mapcanvas is not None:
@@ -97,7 +109,8 @@ terminal line instead")
             img = self.mapcanvas.output()
             # img.show()
             self.log.info(f"time used: {time.time() - _t}")
-            img.show()
+            # img.show()
+            self.mapcanvas.image.show()
             img.close()
             # self.mapcanvas.image.show("image preview")
         else:
@@ -121,21 +134,32 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
             color_raw = arg[2]
             color_id = None
             if color_raw.startswith("#"):
-                if color_raw in self.data.color:
-                    color_id = self.data.color.index(color_raw)
+                if color_raw in self.data["<color>"]:
+                    color_id = self.data["<color>"].index(color_raw)
                 else:
-                    color_id = self.data.color.add_color(color_raw)
+                    color_id = self.data["<color>"].add_color(color_raw)
             elif color_raw.isalnum():
                 color_id = int(color_raw)
             floor_elem = gridcls.Node.Floor(pos, color_id)
-            self.data.map_dict["<floor>"][pos] = floor_elem
+            self.data["<floor>"][pos] = floor_elem
             self.mapcanvas.draw_single_hex_floor(pos,
-                                                 self.data.color[color_id])
+                self.data["<color>"][color_id])
+
+        # TODO
+        elif arg[0] == "color":
+            if len(arg) == 1 or "--tk" in arg:
+                root = Tk()
+                root.withdraw()
+                color, string = colorchooser.askcolor("#FF0000")
+                self.log.debug("color choosed - {0}: {1}", string, color)
 
     def do_save(self, arg: str):
         "save the map file"
         arg_lst = arg.split()
-        if not arg_lst or "-tk" in arg_lst:
+        if "--path" in arg_lst:
+            path_index = arg_lst.index("--path")
+            path = arg_lst[path_index + 1]
+        else:
             if flag_has_tk:
                 root = Tk()
                 root.withdraw()
@@ -151,8 +175,6 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
 terminal line instead")
                 path = input(f"""hexmap file (*.hgdata) path: \
 {global_const.TERMCOLOR.DEFAULT}""")
-        else:
-            path = arg
         if path == "":
             self.log.info("cancelled")
             return
@@ -161,7 +183,10 @@ terminal line instead")
     def do_render(self, arg: str):
         "render the map picture (.png) and save it"
         arg_lst = arg.split()
-        if not arg_lst or "-tk" in arg_lst:
+        if "--path" in arg_lst:
+            path_index = arg_lst.index("--path")
+            path = arg_lst[path_index + 1]
+        else:
             if flag_has_tk:
                 root = Tk()
                 root.withdraw()
@@ -169,8 +194,8 @@ terminal line instead")
                 root.wm_attributes('-topmost', 1)
                 path = filedialog.asksaveasfilename(
                     initialdir=".",
-                    filetypes=[ ("jpg file", ".jpg"), ("png file", ".png"),
-                        ("all files", ".*"),],
+                    filetypes=[("jpg file", ".jpg"), ("png file", ".png"),
+                               ("all files", ".*"), ],
                     parent=root, title="select hex grid save file",
                     defaultextension=".png")
                 print(path)
@@ -180,8 +205,6 @@ terminal line instead")
 'tkinter', input path by terminal line instead""")
                 path = input(f"""hexmap file (*.hgdata) path: \
 {global_const.TERMCOLOR.DEFAULT}""")
-        else:
-            path = arg
         if path == "":
             self.log.info("cancelled")
             return
@@ -189,10 +212,15 @@ terminal line instead")
         _t = time.time()
         if not self.mapcanvas.map_created:
             self.mapcanvas.craete_map()
-        img = self.mapcanvas.output()
-        img.save(path)
+        if "--raw" in arg_lst:
+            img = self.mapcanvas.image.convert("RGB")
+            img.save(path)
+            img.close()
+        else:
+            img = self.mapcanvas.output()
+            img.save(path)
+            img.close()
         self.log.info(f"time used - {time.time()-_t}")
-        img.close()
 
     @classmethod
     def do_exit(cls, *_):
@@ -202,6 +230,7 @@ terminal line instead")
 
 class LogCls:
     "the local diagnose api cls"
+
     def __init__(self, fmt=None, setlevel=0) -> None:
         if fmt is None:
             fmt = "{color}[{lvl}]: {message}{default_color}"

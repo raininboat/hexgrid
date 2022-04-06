@@ -23,14 +23,15 @@ from . import global_const, gridcls
 
 class MapCanvas:
     "the total canvas class"
+
     def __init__(self, data: gridcls.Grid):
         self.grid_data = data
         self.map_created = False    # lazy create
         self.image = Image.new(
-            mode="RGBA", size=self.grid_data.cfg.size,
+            mode="RGBA", size=self.grid_data["<set>"].size,
             color=(255, 255, 255, 255))
         self._font_title = ImageFont.truetype(
-            global_const.FONT_TITLE_PATH, size=24)
+            global_const.FONT_TITLE_PATH, size=global_const.FONT_TITLE_SIZE)
         self._draw = ImageDraw.Draw(self.image, mode="RGBA")
 
     def draw_single_hex_floor(self, pos: gridcls.Pos, color):
@@ -43,15 +44,16 @@ class MapCanvas:
                            outline=(0, 0, 0, 255), width=1)
 
     def _draw_floors(self):
-        for i in self.grid_data.map_dict["<floor>"].values():
+        for i in self.grid_data["<floor>"].get_data_iter():
             pos = i.pos
             color_id = int(i.color)
-            color = self.grid_data.color.get_color(color_id)
+            color = self.grid_data["<color>"].get_color(color_id)
+            # print(pos, color)
             self.draw_single_hex_floor(pos, color)
 
     def _draw_map_grid(self):
-        for i in range(self.grid_data.cfg.x_max + 1):
-            for j in range(1, self.grid_data.cfg.y_max + 1):
+        for i in range(self.grid_data["<set>"].x_max + 1):
+            for j in range(1, self.grid_data["<set>"].y_max + 1):
                 x = gridcls.Pos(i, j)
                 self._draw.line(x.point_list_around(),
                                 fill=(0, 0, 0, 255), width=1)
@@ -86,24 +88,24 @@ class MapCanvas:
                             anchor="mm", fill=text[1])
 
     def _draw_items(self):
-        for item in self.grid_data.map_dict["<item>"].values():
+        for item in self.grid_data["<item>"].get_data_iter():
             stamp_type = item.type
             stamp_color_id = item.color
             pos = item.pos
             text = f"i-{item.id}"
             self.draw_single_stamp(
                 stamp_type=stamp_type, stamp_color_id=stamp_color_id,
-                pos=pos, text=(text, (0x7d, 0, 0, 0xff)))
+                pos=pos, text=(text, (0xff, 0xff, 0xff, 0xff)))
 
     def _draw_players(self):
-        for item in self.grid_data.map_dict["<player>"].values():
+        for item in self.grid_data["<player>"].get_data_iter():
             stamp_type = item.type
             stamp_color_id = item.color
             pos = item.pos
             text = f"p-{item.id}"
             self.draw_single_stamp(
                 stamp_type=stamp_type, stamp_color_id=stamp_color_id,
-                pos=pos, text=(text, (0, 0, 0x7d, 0xff)), mask_alpha=0xff)
+                pos=pos, text=(text, (0xff, 0xff, 0xff, 0xff)), mask_alpha=0xff)
 
     # @timeit.Timer
     def craete_map(self):
@@ -117,7 +119,7 @@ class MapCanvas:
     def output(self):
         "the resized version for output (save or preview)"
         size = self.image.size
-        img = self.image.resize((size[0]//2,size[1]//2),1)
+        img = self.image.resize((size[0]//2, size[1]//2), 1)
         img = img.convert("RGB")
         # im.resize((im.size[0]//2,im.size[1]//2),1)
         return img

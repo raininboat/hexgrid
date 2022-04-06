@@ -1,4 +1,5 @@
-# HEXGRID 六角格地图编辑
+# HEXGRID - A hexagon map editor on command line
+This is a test version of `hexgrid` with a lot of features unfinished
 ![六角格预览](./sample/sample_grid.png)
 # LICENCE
 Licensed under Apache License

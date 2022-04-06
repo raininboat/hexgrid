@@ -19,8 +19,6 @@
 import cmd
 import time
 
-from objprint import op
-
 from . import __version__, create_grid_pic, global_const, gridcls, loadmap
 
 flag_has_tk: bool = True
@@ -83,9 +81,9 @@ terminal line instead")
         # color_print(f"time used - {time.time()-_t}", lvl=2)
         return False
 
-    def do_status(self, *args):
+    def do_status(self, _):
         "return status"
-        op(self.data, args)
+        self.log.info("MAP LOAD: [{0}]",self.data is not None)
 
     def do_clear(self, _):
         if self.data is not None:

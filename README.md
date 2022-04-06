@@ -1,6 +1,8 @@
 # HEXGRID - A hexagon map editor on command line
+[![Pylint](https://github.com/raininboat/hexgrid/actions/workflows/pylint.yml/badge.svg?branch=master)](https://github.com/raininboat/hexgrid/actions/workflows/pylint.yml)
+========
 This is a test version of `hexgrid` with a lot of features unfinished
-![六角格预览](./sample/sample_grid.png)
+![六角格预览](./sample/sample_grid.jpg)
 # LICENCE
 Licensed under Apache License
 ~~~

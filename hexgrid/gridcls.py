@@ -164,32 +164,6 @@ class Grid(dict):
     def __init__(self, map_save_dict: dict = None):
         super().__init__()
         self.update(map_save_dict)
-        # if map_save_dict is None:
-        #     map_save_dict = {}
-        # self.map_dict = {
-        #     "<item>": {},
-        #     "<player>": {},
-        #     "<floor>": {}
-        # }
-        # self.cfg = None
-        # self.user = {}
-        # self.color = None
-        # for tag, data in map_save_dict.items():
-        #     if tag in ("<item>", "<player>", "<floor>"):
-        #         self.map_dict[tag] = data
-        #         # for j in data:
-        #         #     pos = j.pos
-        #         #     self.map_dict[tag][pos] = j
-        #     elif tag == "<set>":
-        #         self.cfg = data.data[-1]
-        #     elif tag == "<user>":
-        #         self.user = data
-        #         # for j in data:
-        #         #     self.user[j.uid] = j
-        #     elif tag == "<color>":
-        #         self.color = data
-        #     else:
-        #         print(f"unknown tag '{tag}'")
 
     def save(self, path, encoding="utf-8"):
         # TODO: save map
@@ -200,13 +174,6 @@ class Grid(dict):
                 "<set>", "<color>", "<floor>", "<item>", "<user>", "<player>"
             ]
             for tag in tag_list:
-                # if tag == "<set>":
-                #     file.writelines(self.cfg.get_save_iter())
-                # elif tag == "<user>":
-                #     file.writelines(self.user.get_save_iter())
-                # elif tag == "<color>":
-                #     file.writelines(self.color.get_save_iter())
-                # elif tag in ("<item>", "<player>", "<floor>"):
                 data = self[tag]
                 print(tag, data)
                 file.writelines(data.get_save_iter())

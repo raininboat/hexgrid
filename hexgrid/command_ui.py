@@ -82,10 +82,11 @@ terminal line instead")
         return False
 
     def do_status(self, _):
-        "return status"
+        "return status (whether map loaded)"
         self.log.info("MAP LOAD: [{0}]",self.data is not None)
 
     def do_clear(self, _):
+        "clean the data and map image"
         if self.data is not None:
             self.data = None
         if self.mapcanvas is None:
@@ -122,14 +123,29 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
     player: add player A0 [marker_type] [color_id] [user_id] [pc_name]
     floor: add floor A0 [color id | hex #rgb]
 """
-        arg = raw_arg.split()
-        if arg[0] == "floor":
-            if len(arg) < 3:
-                self.log.error("Input ERROR")
-                self.do_help("add")
-                return
-            pos = gridcls.Pos(pos=arg[1])
-            color_raw = arg[2]
+        arg_lst = raw_arg.split()
+        if arg_lst[0] == "floor":
+            # if len(arg) < 3:
+            #     self.log.error("Input ERROR")
+            #     self.do_help("add")
+            #     return
+            pos = gridcls.Pos(pos=arg_lst[1])
+            if "--color" in arg_lst:
+                color_arg_index = arg_lst.index("--color")
+            else:
+                if flag_has_tk:
+                    root = Tk()
+                    root.withdraw()
+                    color_tuple, color_raw  = colorchooser.askcolor("#FF0000")
+                    self.log.debug("color choosed - {0}: {1}",
+                        color_tuple, color_raw)
+                    root.destroy()
+                else:
+                    self.log.info("Cannot find module 'tkinter', input color by \
+terminal line instead")
+                    color_raw = input(f"""color choosed (id or #rrggbb): \
+{global_const.TERMCOLOR.DEFAULT}""")
+            color_raw = arg_lst[color_arg_index + 1]
             color_id = None
             if color_raw.startswith("#"):
                 if color_raw in self.data["<color>"]:
@@ -144,8 +160,8 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
                 self.data["<color>"][color_id])
 
         # TODO
-        elif arg[0] == "color":
-            if len(arg) == 1 or "--tk" in arg:
+        elif arg_lst[0] == "color":
+            if len(arg_lst) == 1 or "--tk" in arg_lst:
                 root = Tk()
                 root.withdraw()
                 color, string = colorchooser.askcolor("#FF0000")

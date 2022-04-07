@@ -34,11 +34,14 @@ RESOURCE_STAMP_TYPE = [
 ]
 
 # the font in the map
+FONT_TITLE_SIZE = 24
 FONT_TITLE_PATH = r"./res/font/Ubuntu-B.ttf"
 FONT_DESC_PATH = r"./res/font/Ubuntu-L.ttf"
 
-
+SAVE_FILE_HEADER = "GRIDMAP 0.1\n"
 # the unix terminal word color
+
+
 class TERMCOLOR:
     "terminal color"
     BLACK = "\033[30m"

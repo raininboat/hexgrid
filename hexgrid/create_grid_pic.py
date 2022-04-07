@@ -16,6 +16,8 @@
    limitations under the License.
 """
 
+from typing import overload
+
 from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFont
 
 from . import global_const, gridcls
@@ -23,18 +25,50 @@ from . import global_const, gridcls
 
 class MapCanvas:
     "the total canvas class"
+
     def __init__(self, data: gridcls.Grid):
         self.grid_data = data
         self.map_created = False    # lazy create
         self.image = Image.new(
-            mode="RGBA", size=self.grid_data.cfg.size,
+            mode="RGBA", size=self.grid_data["<set>"].size,
             color=(255, 255, 255, 255))
         self._font_title = ImageFont.truetype(
-            global_const.FONT_TITLE_PATH, size=24)
+            global_const.FONT_TITLE_PATH, size=global_const.FONT_TITLE_SIZE)
         self._draw = ImageDraw.Draw(self.image, mode="RGBA")
 
-    def draw_single_hex_floor(self, pos: gridcls.Pos, color):
+    @overload
+    def draw_single_hex_floor(self, node: gridcls.Node.Floor): ...
+
+    @overload
+    def draw_single_hex_floor(self, pos: gridcls.Pos, color): ...
+
+    def draw_single_hex_floor(self, *args, **kwargs):
         "draw the single floor (fill the target hexagon grid)"
+        if len(args) == 1:
+            if isinstance(args[0], gridcls.Node.Floor):
+                self.__draw_single_hex_floor(
+                    pos=args[0].pos, color=args[0].color
+                )
+            else:
+                raise TypeError(args, gridcls.Node.Floor)
+        elif len(args) == 2:
+            self.__draw_single_hex_floor(pos=args[0], color=args[1])
+        elif "node" in kwargs:
+            node = kwargs["node"]
+            if isinstance(node, gridcls.Node.Floor):
+                self.__draw_single_hex_floor(
+                    pos=node.pos, color=node.color
+                )
+            else:
+                raise TypeError(node, gridcls.Node.Floor)
+        elif "pos" in kwargs and "color" in kwargs:
+            self.__draw_single_hex_floor(
+                pos=kwargs["pos"], color=kwargs["color"]
+            )
+        else:
+            raise TypeError()
+
+    def __draw_single_hex_floor(self, pos, color):
         if not self.map_created:
             self.craete_map()
         points = pos.point_list_around()
@@ -43,15 +77,16 @@ class MapCanvas:
                            outline=(0, 0, 0, 255), width=1)
 
     def _draw_floors(self):
-        for i in self.grid_data.map_dict["<floor>"].values():
+        for i in self.grid_data["<floor>"].get_data_iter():
             pos = i.pos
             color_id = int(i.color)
-            color = self.grid_data.color.get_color(color_id)
-            self.draw_single_hex_floor(pos, color)
+            color = self.grid_data["<color>"].get_color(color_id)
+            # print(pos, color)
+            self.__draw_single_hex_floor(pos=pos, color=color)
 
     def _draw_map_grid(self):
-        for i in range(self.grid_data.cfg.x_max + 1):
-            for j in range(1, self.grid_data.cfg.y_max + 1):
+        for i in range(self.grid_data["<set>"].x_max + 1):
+            for j in range(1, self.grid_data["<set>"].y_max + 1):
                 x = gridcls.Pos(i, j)
                 self._draw.line(x.point_list_around(),
                                 fill=(0, 0, 0, 255), width=1)
@@ -85,25 +120,41 @@ class MapCanvas:
             self._draw.text(pos.xy_abs, text=text[0], font=self._font_title,
                             anchor="mm", fill=text[1])
 
+    def draw_single_item(self, item):
+        "draw the single item marker on the map from node obj"
+        stamp_type = item.type
+        stamp_color_id = item.color
+        pos = item.pos
+        text = f"i-{item.id}"
+        self.draw_single_stamp(
+            stamp_type=stamp_type, stamp_color_id=stamp_color_id,
+            pos=pos, text=(text, (0xff, 0xff, 0xff, 0xff)))
+
     def _draw_items(self):
-        for item in self.grid_data.map_dict["<item>"].values():
-            stamp_type = item.type
-            stamp_color_id = item.color
-            pos = item.pos
-            text = f"i-{item.id}"
-            self.draw_single_stamp(
-                stamp_type=stamp_type, stamp_color_id=stamp_color_id,
-                pos=pos, text=(text, (0x7d, 0, 0, 0xff)))
+        for item in self.grid_data["<item>"].get_data_iter():
+            self.draw_single_item(item)
+            # stamp_type = item.type
+            # stamp_color_id = item.color
+            # pos = item.pos
+            # text = f"i-{item.id}"
+            # self.draw_single_stamp(
+            #     stamp_type=stamp_type, stamp_color_id=stamp_color_id,
+            #     pos=pos, text=(text, (0xff, 0xff, 0xff, 0xff)))
+
+    def draw_single_player(self, player):
+        "draw the single player marker on the map from node obj"
+        stamp_type = player.type
+        stamp_color_id = player.color
+        pos = player.pos
+        text = f"p-{player.id}"
+        self.draw_single_stamp(
+            stamp_type=stamp_type, stamp_color_id=stamp_color_id,
+            pos=pos, text=(text, (0xff, 0xff, 0xff, 0xff)),
+            mask_alpha=0xff)
 
     def _draw_players(self):
-        for item in self.grid_data.map_dict["<player>"].values():
-            stamp_type = item.type
-            stamp_color_id = item.color
-            pos = item.pos
-            text = f"p-{item.id}"
-            self.draw_single_stamp(
-                stamp_type=stamp_type, stamp_color_id=stamp_color_id,
-                pos=pos, text=(text, (0, 0, 0x7d, 0xff)), mask_alpha=0xff)
+        for item in self.grid_data["<player>"].get_data_iter():
+            self.draw_single_player(item)
 
     # @timeit.Timer
     def craete_map(self):
@@ -117,7 +168,7 @@ class MapCanvas:
     def output(self):
         "the resized version for output (save or preview)"
         size = self.image.size
-        img = self.image.resize((size[0]//2,size[1]//2),1)
+        img = self.image.resize((size[0]//2, size[1]//2), 1)
         img = img.convert("RGB")
         # im.resize((im.size[0]//2,im.size[1]//2),1)
         return img

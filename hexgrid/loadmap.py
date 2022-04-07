@@ -18,8 +18,6 @@
 
 import re
 
-import objprint
-
 # import hexgrid
 from . import gridcls, misc
 
@@ -47,14 +45,32 @@ class _MapSaveClsTemplate:
         "override this to set data class"
         return self._MapSaveRow(this_line_list)
 
-    def get_line_save(self):
+    def get_save_iter(self):
         return self._MapSaveIter(self, need_tag=True)
+
+    def get_data_iter(self):
+        return self._MapDataIter(self)
 
     def __iter__(self):
         return self._MapSaveIter(self, need_tag=False)
 
     class _MapSaveRow(gridcls.MapGridElementTemplate):
         "basic_tamplate"
+
+    class _MapDataIter:
+        def __init__(self, map_obj) -> None:
+            self.map_obj = map_obj
+            self.index = 0
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            if self.index >= len(self.map_obj.data):
+                raise StopIteration()
+            ret = self.map_obj.data[self.index]
+            self.index += 1
+            return ret
 
     class _MapSaveIter:
         __sep = "|"
@@ -74,11 +90,11 @@ class _MapSaveClsTemplate:
             if self.index < 0:
                 # return tag
                 self.index += 1
-                return self.map_obj.tag
+                return self.map_obj.tag+"\n"
             tmp_data = self.map_obj.data[self.index]
             ret = self.__sep.join(tmp_data)
             self.index += 1
-            return ret
+            return ret+"\n"
 
 
 class MapSave:
@@ -95,7 +111,7 @@ class MapSave:
         def get_color(self, color_id: int):
             if color_id >= len(self.data):
                 print(f"ERROR, NO COLOR - {color_id}")
-                objprint.op(self)
+                print(self.data)
                 return None
             return self.data[color_id].color
 
@@ -131,12 +147,28 @@ class MapSave:
         def __init__(self):
             super().__init__("<set>")
 
+        @property
+        def x_max(self):
+            return self.data[0].x_max
+
+        @property
+        def y_max(self):
+            return self.data[0].y_max
+
+        @property
+        def name(self):
+            return self.data[0].name
+
+        @property
+        def size(self):
+            return self.data[0].size
+
         class _MapSaveRow(Node.Set):
             def __init__(self, row_data_list):
                 super().__init__(
                     x_max=int(row_data_list[0]),
                     y_max=int(row_data_list[1]),
-                    r=int(row_data_list[2]),      # TODO: 存档六角格半径可变
+                    _r=int(row_data_list[2]),      # TODO: 存档六角格半径可变
                     name=row_data_list[3],
                 )
 

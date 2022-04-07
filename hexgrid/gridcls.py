@@ -21,8 +21,6 @@ from dataclasses import dataclass
 from math import log
 from typing import Any, overload
 
-from objprint import op
-
 # import hexgrid
 from . import global_const, misc
 
@@ -148,7 +146,7 @@ class Pos:
         if isinstance(__o, Pos):  # type(__o) is Pos:
             if self.point_x != __o.point_x or self.point_y != __o.point_y:
                 return False
-        elif isinstance(__o, tuple): # type(__o) is tuple:
+        elif isinstance(__o, tuple):  # type(__o) is tuple:
             if self.point_x != __o[0] or self.point_y != __o[1]:
                 return False
         else:
@@ -162,42 +160,67 @@ class Pos:
         return self.show_pos
 
 
-class Grid:
-    def __init__(self, map_save_dict=None):
-        if map_save_dict is None:
-            map_save_dict = {}
-        self.map_dict = {
-            "<item>": {},
-            "<player>": {},
-            "<floor>": {}
-        }
-        self.cfg = None
-        self.user = {}
-        self.color = None
-        for i in map_save_dict.values():
-            tag = i.tag
-            data = i.data
-            if tag in ("<item>", "<player>", "<floor>"):
-                for j in data:
-                    pos = j.pos
-                    self.map_dict[tag][pos] = j
-            elif tag == "<set>":
-                self.cfg = data[-1]
-            elif tag == "<user>":
-                for j in data:
-                    self.user[j.uid] = j
-            elif tag == "<color>":
-                self.color = i
-            else:
-                print(f"unknown tag '{tag}'")
+class PosConf:
+    "a class showing all the conf on a certain hexagon"
+    def __init__(self, pos: Pos, floor=None, item=None, player=None):
+        self.pos = pos
+        self.floor = floor
+        self.item = item
+        self.player = player
 
-    def save(self, path):
+    def set_data(self, tag, data):
+        "use <tag> to set data"
+        if tag == "<floor>":
+            self.floor = data
+        elif tag == "<item>":
+            self.item = data
+        elif tag == "<player>":
+            self.player = data
+
+    def print_on_img(self, map_canvas):
+        """draw all the things in this hexagon on canvas
+        (`create_grid_pic.MapCanvas`)"""
+        if self.floor:
+            map_canvas.draw_single_hex_floor(node=self.floor)
+        if self.item:
+            map_canvas.draw_single_item(self.item)
+        if self.player:
+            map_canvas.draw_single_player(self.player)
+
+
+class Grid(dict):
+    def __init__(self, map_save_dict: dict = None):
+        super().__init__()
+        self.update(map_save_dict)
+
+    def get_map_data(self, gridobj=None):
+        "get all markers on the map according to pos"
+        if gridobj is None:
+            gridobj = self
+        tmp_data_dict = {}   # Pos: PosConf
+        tmp_data_dict["color"] = gridobj["<color>"]
+        for tag in ["<floor>", "<item>", "<player>"]:
+            for data in gridobj[tag].get_data_iter():
+                if data.pos in tmp_data_dict:
+                    tmp_data_dict[data.pos].set_data(tag=tag, data=data)
+                else:
+                    this_pos_conf = PosConf(pos=data.pos)
+                    this_pos_conf.set_data(tag=tag, data=data)
+                    tmp_data_dict[data.pos] = this_pos_conf
+        return tmp_data_dict
+
+    def save(self, path, encoding="utf-8"):
         # TODO: save map
         "save the hexmap"
-        print(f"""{misc.COLOR.YELLOW}save map is currently not \
-supported{misc.COLOR.DEFAULT} - {misc.COLOR.GREEN}path: {path}
-{misc.COLOR.GREEN}data:""")
-        op(self)
+        with open(path, mode="w", encoding=encoding) as file:
+            file.writelines(global_const.SAVE_FILE_HEADER)
+            tag_list = [
+                "<set>", "<color>", "<floor>", "<item>", "<user>", "<player>"
+            ]
+            for tag in tag_list:
+                data = self[tag]
+                print(tag, data)
+                file.writelines(data.get_save_iter())
 
 
 class MapGridElementTemplate:

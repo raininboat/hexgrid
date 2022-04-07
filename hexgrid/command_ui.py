@@ -26,9 +26,9 @@ from . import (__version__, create_grid_pic, global_const, gridcls, loadmap,
                misc)
 
 system = platform.system()
-flag_gui: bool = False
+FLAG_GUI: bool = False
 if system in ("Windows", "Darwin"):     # windows and mac os
-    flag_gui = True
+    FLAG_GUI = True
     from tkinter import Tk, colorchooser, filedialog
 else:
     misc.LogCls.log(system, level=40, msg="""GUI module (tkinter) not \
@@ -61,7 +61,7 @@ Use 'help' to see help ...\
             self.do_clear(None)
         path: str = None
         if not arg_lst or "-tk" in arg_lst:
-            if flag_gui:
+            if FLAG_GUI:
                 root = Tk()
                 root.withdraw()
                 # root.
@@ -211,7 +211,7 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
             path_index = arg_lst.index("--path")
             path = arg_lst[path_index + 1]
         else:
-            if flag_gui:
+            if FLAG_GUI:
                 root = Tk()
                 root.withdraw()
                 root.wm_attributes('-topmost', 1)
@@ -238,7 +238,7 @@ terminal line instead")
             path_index = arg_lst.index("--path")
             path = arg_lst[path_index + 1]
         else:
-            if flag_gui:
+            if FLAG_GUI:
                 root = Tk()
                 root.withdraw()
                 # root.

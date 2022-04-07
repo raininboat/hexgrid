@@ -17,17 +17,22 @@
 """
 
 import cmd
+import platform
 import time
 
 from objprint import op
 
-from . import __version__, create_grid_pic, global_const, gridcls, loadmap
+from . import (__version__, create_grid_pic, global_const, gridcls, loadmap,
+               misc)
 
-flag_has_tk: bool = True
-try:
+system = platform.system()
+flag_gui: bool = False
+if system in ("Windows", "Darwin"):     # windows and mac os
+    flag_gui = True
     from tkinter import Tk, colorchooser, filedialog
-except ImportError:
-    flag_has_tk: bool = False
+else:
+    misc.LogCls.log(system, level=40, msg="""GUI module (tkinter) not \
+available in this platform. Platform name: [{0}]""")
 
 
 class MapEditInterface(cmd.Cmd):
@@ -43,7 +48,7 @@ Use 'help' to see help ...\
         super().__init__(completekey, stdin, stdout)
         self.data = None
         self.mapcanvas = None
-        self.log = LogCls()
+        self.log = misc.LogCls()
 
     def emptyline(self):
         return False
@@ -56,7 +61,7 @@ Use 'help' to see help ...\
             self.do_clear(None)
         path: str = None
         if not arg_lst or "-tk" in arg_lst:
-            if flag_has_tk:
+            if flag_gui:
                 root = Tk()
                 root.withdraw()
                 # root.
@@ -82,6 +87,51 @@ terminal line instead")
         self.log.info("time used: {0}", time.time() - _t)
         # color_print(f"time used - {time.time()-_t}", lvl=2)
         return False
+
+    def do_show(self, args: str):
+        "show map configs\nshow (default: set)| color | floor | item | player"
+        if self.data is None:
+            self.log.error("please load the map first")
+            return
+        arg_list = args.split()
+        if not arg_list or arg_list[0] == "set":
+            data = self.data["<set>"].data[0]
+            ret = f"""HEXGRID Map Data
+name:{data.name}, x_max:{data.x_max}, y_max:{data.y_max}"""
+            self.log.info(ret)
+            return
+        if arg_list[0] == "color":
+            data_list = self.data["<color>"].data
+            tmp_reply_lst = []
+            for i, j in enumerate(data_list):
+                tmp_reply_lst.append(f"{i}: \t{j.color}")
+            self.log.info("map data color list:\n" + "\n".join(tmp_reply_lst))
+            return
+        if arg_list[0] == "floor":
+            data_list = self.data["<floor>"].data
+            tmp_reply_lst = []
+            for floor in data_list:
+                tmp_reply_lst.append(f"{floor.pos.show_pos}: \t\
+color-{floor.color}")
+            self.log.info("map data floor list:\n" + "\n".join(tmp_reply_lst))
+            return
+        if arg_list[0] == "item":
+            data_list = self.data["<item>"].data
+            tmp_reply_lst = []
+            for item in data_list:
+                tmp_reply_lst.append(f"{item.pos.show_pos}: \t\
+id-{item.id}, name-{item.name}, color-{item.color}, type-{item.type}")
+            self.log.info("map data item list:\n" + "\n".join(tmp_reply_lst))
+            return
+        if arg_list[0] == "player":
+            data_list = self.data["<player>"].data
+            tmp_reply_lst = []
+            for player in data_list:
+                tmp_reply_lst.append(f"{player.pos.show_pos}: \t\
+id-{player.id}, name-{player.name}, uid:{player.uid}, color-{player.color}, \
+type-{player.type}")
+            self.log.info("map data player list:\n" + "\n".join(tmp_reply_lst))
+            return
 
     def do_status(self, *args):
         "return status"
@@ -142,8 +192,9 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
                 color_id = int(color_raw)
             floor_elem = gridcls.Node.Floor(pos, color_id)
             self.data["<floor>"][pos] = floor_elem
-            self.mapcanvas.draw_single_hex_floor(pos,
-                self.data["<color>"][color_id])
+            self.mapcanvas.draw_single_hex_floor(
+                pos, self.data["<color>"][color_id]
+            )
 
         # TODO
         elif arg[0] == "color":
@@ -160,7 +211,7 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
             path_index = arg_lst.index("--path")
             path = arg_lst[path_index + 1]
         else:
-            if flag_has_tk:
+            if flag_gui:
                 root = Tk()
                 root.withdraw()
                 root.wm_attributes('-topmost', 1)
@@ -187,7 +238,7 @@ terminal line instead")
             path_index = arg_lst.index("--path")
             path = arg_lst[path_index + 1]
         else:
-            if flag_has_tk:
+            if flag_gui:
                 root = Tk()
                 root.withdraw()
                 # root.
@@ -226,67 +277,6 @@ terminal line instead")
     def do_exit(cls, *_):
         "exit the terminal"
         return True
-
-
-class LogCls:
-    "the local diagnose api cls"
-
-    def __init__(self, fmt=None, setlevel=0) -> None:
-        if fmt is None:
-            fmt = "{color}[{lvl}]: {message}{default_color}"
-        self._fmt = fmt
-        self._setlevel = setlevel
-
-    def log(self, *args, level, msg, **kwargs):
-        "print the log"
-        if level < self._setlevel:
-            return
-        if level >= 50:
-            lvl = "CRITICAL"
-            color = global_const.TERMCOLOR.RED
-        elif level >= 40:
-            lvl = "WARNING"
-            color = global_const.TERMCOLOR.PURPLE
-        elif level >= 30:
-            lvl = "ERROR"
-            color = global_const.TERMCOLOR.YELLOW
-        elif level >= 20:
-            lvl = "INFO"
-            color = global_const.TERMCOLOR.CYAN
-        elif level >= 10:
-            lvl = "DEBUG"
-            color = global_const.TERMCOLOR.GREEN
-        else:
-            lvl = "UNKNOWN"
-            color = global_const.TERMCOLOR.DEFAULT
-
-        # print(msg, args, )
-        text = str(msg).format(*args, **kwargs)
-        output_string = self._fmt.format(
-            color=color, lvl=lvl, message=text,
-            default_color=global_const.TERMCOLOR.DEFAULT
-        )
-        print(output_string)
-
-    def debug(self, msg, *args, **kwargs):
-        "print log in debug lvl"
-        self.log(level=10, msg=msg, *args, **kwargs)
-
-    def info(self, msg, *args, **kwargs):
-        "print log in info lvl"
-        self.log(level=20, msg=msg, *args, **kwargs)
-
-    def error(self, msg, *args, **kwargs):
-        "print log in error lvl"
-        self.log(level=30, msg=msg, *args, **kwargs)
-
-    def warning(self, msg, *args, **kwargs):
-        "print log in warning lvl"
-        self.log(level=40, msg=msg, args=args, kwargs=kwargs)
-
-    def critical(self, msg, *args, **kwargs):
-        "print log in critical lvl"
-        self.log(level=50, msg=msg, args=args, kwargs=kwargs)
 
 
 if __name__ == "__main__":

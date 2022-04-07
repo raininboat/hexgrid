@@ -16,6 +16,7 @@
    limitations under the License.
 """
 
+from os.path import isfile
 from typing import overload
 
 from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFont
@@ -84,16 +85,20 @@ class MapCanvas:
             # print(pos, color)
             self.__draw_single_hex_floor(pos=pos, color=color)
 
+    def draw_single_grid(self, pos: gridcls.Pos):
+        "draw the outlines of the hexagon and print the pos title"
+        self._draw.line(pos.point_list_around(),
+                        fill=(0, 0, 0, 255), width=1)
+        txt = pos.show_pos
+        t_p = pos.coord_text_cood()
+        self._draw.text(t_p, text=txt, fill=(
+            0, 0, 0, 255), font=self._font_title, anchor="ma")
+
     def _draw_map_grid(self):
         for i in range(self.grid_data["<set>"].x_max + 1):
             for j in range(1, self.grid_data["<set>"].y_max + 1):
                 x = gridcls.Pos(i, j)
-                self._draw.line(x.point_list_around(),
-                                fill=(0, 0, 0, 255), width=1)
-                txt = x.show_pos
-                t_p = x.coord_text_cood()
-                self._draw.text(t_p, text=txt, fill=(
-                    0, 0, 0, 255), font=self._font_title, anchor="ma")
+                self.draw_single_grid(pos=x)
 
     def draw_single_stamp(self, stamp_type, stamp_color_id, pos,
                           text=None, mask_alpha=None):
@@ -165,6 +170,19 @@ class MapCanvas:
         self._draw_items()
         self._draw_players()
 
+    def draw_from_pos_conf(self, pos_conf: gridcls.PosConf):
+        "redraw a single hexagon grid"
+        if pos_conf.floor:
+            self.draw_single_hex_floor(node=pos_conf.floor)
+        else:   # draw a white hexagon to clear the grid
+            color = gridcls.Node.Color("#FFFFFF")
+            self.draw_single_hex_floor(pos=pos_conf.pos, color=color)
+        self.draw_single_grid(pos=pos_conf.pos)
+        if pos_conf.item:
+            self.draw_single_item(item=pos_conf.item)
+        if pos_conf.player:
+            self.draw_single_player(player=pos_conf.player)
+
     def output(self):
         "the resized version for output (save or preview)"
         size = self.image.size
@@ -179,7 +197,11 @@ class MapCanvas:
 
 def load_stamp(stamp_type, stamp_color_id):
     "[WAITING FOR REFORM] load the stamp according to configures"
-    path = global_const.RESOURCE_STAMP_TYPE[stamp_type].format(
-        color=int(stamp_color_id))
-    stm = Image.open(path)
-    return stm
+    path = global_const.RESOURCE_STAMP_PATH.format(
+        type=global_const.RESOURCE_STAMP_TYPE[stamp_type],
+        color=int(stamp_color_id)
+    )
+    if isfile(path):
+        stm = Image.open(path)
+        return stm
+    return None

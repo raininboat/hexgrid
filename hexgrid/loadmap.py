@@ -46,10 +46,24 @@ class _MapSaveClsTemplate:
         return self._MapSaveRow(this_line_list)
 
     def get_save_iter(self):
+        "get an iterator returning save string of the node obj"
         return self._MapSaveIter(self, need_tag=True)
 
     def get_data_iter(self):
+        "get an iterator returning data node obj"
         return self._MapDataIter(self)
+
+    def set_on_pos(self, pos, data):
+        "set node data on the pos"
+        index = 0
+        for i in self.get_data_iter():
+            if i.pos == pos:
+                self.data[index] = data
+                index = -1
+                break
+            index += 1
+        if index != -1:
+            self.data.append(data)
 
     def __iter__(self):
         return self._MapSaveIter(self, need_tag=False)

@@ -17,10 +17,9 @@
 """
 
 import cmd
+import os
 import platform
 import time
-
-from objprint import op
 
 from . import (__version__, create_grid_pic, global_const, gridcls, loadmap,
                misc)
@@ -79,14 +78,17 @@ terminal line instead")
             path = arg
         if path == "":
             self.log.info("cancelled")
-            return False
+            return
+        if not os.path.isfile(path):
+            self.log.error(f"input path '{path}' is not a file. abort")
+            return
         self.log.info("- load start -")
         _t = time.time()
         self.data = loadmap.load_file(path)
         self.mapcanvas = create_grid_pic.MapCanvas(self.data)
         self.log.info("time used: {0}", time.time() - _t)
         # color_print(f"time used - {time.time()-_t}", lvl=2)
-        return False
+        return
 
     def do_show(self, args: str):
         "show map configs\nshow (default: set)| color | floor | item | player"
@@ -133,13 +135,14 @@ type-{player.type}")
             self.log.info("map data player list:\n" + "\n".join(tmp_reply_lst))
             return
 
-    def do_status(self, *args):
-        "return status"
-        op(self.data, args)
+    # def do_status(self, *args):
+    #     "return status"
+    #     op(self.data, args)
 
     def do_clear(self, _):
         if self.data is not None:
             self.data = None
+            self.log.info("load cleared")
         if self.mapcanvas is None:
             # self.log.debug("map unload")
             return
@@ -151,20 +154,23 @@ type-{player.type}")
 
     def do_preview(self, *_):
         "preview the hexmap picture"
-        if self.mapcanvas is not None:
-            self.log.info("- preview start -")
-            _t = time.time()
-            if not self.mapcanvas.map_created:
-                self.mapcanvas.craete_map()
-            img = self.mapcanvas.output()
-            # img.show()
-            self.log.info(f"time used: {time.time() - _t}")
-            # img.show()
-            self.mapcanvas.image.show()
-            img.close()
-            # self.mapcanvas.image.show("image preview")
-        else:
+        if self.mapcanvas is None:
             self.log.error("please (load) file first")
+            return
+        if not FLAG_GUI:
+            self.log.warning(
+                "preview may not work in this system (gui required)")
+        self.log.info("- preview start -")
+        _t = time.time()
+        if not self.mapcanvas.map_created:
+            self.mapcanvas.craete_map()
+        img = self.mapcanvas.output()
+        # img.show()
+        self.log.info(f"time used: {time.time() - _t}")
+        # img.show()
+        self.mapcanvas.image.show()
+        img.close()
+        # self.mapcanvas.image.show("image preview")
 
     def do_add(self, raw_arg: str):
         """\

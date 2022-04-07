@@ -160,36 +160,54 @@ class Pos:
         return self.show_pos
 
 
+class PosConf:
+    "a class showing all the conf on a certain hexagon"
+    def __init__(self, pos: Pos, floor=None, item=None, player=None):
+        self.pos = pos
+        self.floor = floor
+        self.item = item
+        self.player = player
+
+    def set_data(self, tag, data):
+        "use <tag> to set data"
+        if tag == "<floor>":
+            self.floor = data
+        elif tag == "<item>":
+            self.item = data
+        elif tag == "<player>":
+            self.player = data
+
+    def print_on_img(self, map_canvas):
+        """draw all the things in this hexagon on canvas
+        (`create_grid_pic.MapCanvas`)"""
+        if self.floor:
+            map_canvas.draw_single_hex_floor(node=self.floor)
+        if self.item:
+            map_canvas.draw_single_item(self.item)
+        if self.player:
+            map_canvas.draw_single_player(self.player)
+
+
 class Grid(dict):
     def __init__(self, map_save_dict: dict = None):
         super().__init__()
         self.update(map_save_dict)
-        # if map_save_dict is None:
-        #     map_save_dict = {}
-        # self.map_dict = {
-        #     "<item>": {},
-        #     "<player>": {},
-        #     "<floor>": {}
-        # }
-        # self.cfg = None
-        # self.user = {}
-        # self.color = None
-        # for tag, data in map_save_dict.items():
-        #     if tag in ("<item>", "<player>", "<floor>"):
-        #         self.map_dict[tag] = data
-        #         # for j in data:
-        #         #     pos = j.pos
-        #         #     self.map_dict[tag][pos] = j
-        #     elif tag == "<set>":
-        #         self.cfg = data.data[-1]
-        #     elif tag == "<user>":
-        #         self.user = data
-        #         # for j in data:
-        #         #     self.user[j.uid] = j
-        #     elif tag == "<color>":
-        #         self.color = data
-        #     else:
-        #         print(f"unknown tag '{tag}'")
+
+    def get_map_data(self, gridobj=None):
+        "get all markers on the map according to pos"
+        if gridobj is None:
+            gridobj = self
+        tmp_data_dict = {}   # Pos: PosConf
+        tmp_data_dict["color"] = gridobj["<color>"]
+        for tag in ["<floor>", "<item>", "<player>"]:
+            for data in gridobj[tag].get_data_iter():
+                if data.pos in tmp_data_dict:
+                    tmp_data_dict[data.pos].set_data(tag=tag, data=data)
+                else:
+                    this_pos_conf = PosConf(pos=data.pos)
+                    this_pos_conf.set_data(tag=tag, data=data)
+                    tmp_data_dict[data.pos] = this_pos_conf
+        return tmp_data_dict
 
     def save(self, path, encoding="utf-8"):
         # TODO: save map
@@ -200,13 +218,6 @@ class Grid(dict):
                 "<set>", "<color>", "<floor>", "<item>", "<user>", "<player>"
             ]
             for tag in tag_list:
-                # if tag == "<set>":
-                #     file.writelines(self.cfg.get_save_iter())
-                # elif tag == "<user>":
-                #     file.writelines(self.user.get_save_iter())
-                # elif tag == "<color>":
-                #     file.writelines(self.color.get_save_iter())
-                # elif tag in ("<item>", "<player>", "<floor>"):
                 data = self[tag]
                 print(tag, data)
                 file.writelines(data.get_save_iter())

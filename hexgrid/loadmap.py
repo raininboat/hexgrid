@@ -18,8 +18,6 @@
 
 import re
 
-import objprint
-
 # import hexgrid
 from . import gridcls, misc
 
@@ -113,7 +111,7 @@ class MapSave:
         def get_color(self, color_id: int):
             if color_id >= len(self.data):
                 print(f"ERROR, NO COLOR - {color_id}")
-                objprint.op(self)
+                print(self.data)
                 return None
             return self.data[color_id].color
 

@@ -111,6 +111,7 @@ class MapSave:
         def get_color(self, color_id: int):
             if color_id >= len(self.data):
                 print(f"ERROR, NO COLOR - {color_id}")
+                print(self.data)
                 return None
             return self.data[color_id].color
 

@@ -22,15 +22,10 @@ PX_RATIO = 0.866    # sqrt(3)/2     y/x
 PX_R = 60           # hexagon radius
 
 # the sesource stamp file path
+RESOURCE_STAMP_PATH = "./res/stamp/{type}_{color:d}.png"
 RESOURCE_STAMP_TYPE = [
-    "./res/stamp/add_{color:d}.png",
-    "./res/stamp/circle_{color:d}.png",
-    "./res/stamp/crosscircle_{color:d}.png",
-    "./res/stamp/heart_{color:d}.png",
-    "./res/stamp/multiply_{color:d}.png",
-    "./res/stamp/square_{color:d}.png",
-    "./res/stamp/star_{color:d}.png",
-    "./res/stamp/triangle_{color:d}.png"
+    "add", "circle", "crosscircle", "heart", "multiply",
+    "square", "star", "triangle"
 ]
 
 # the font in the map
@@ -41,7 +36,22 @@ FONT_DESC_PATH = r"./res/font/Ubuntu-L.ttf"
 SAVE_FILE_HEADER = "GRIDMAP 0.1\n"
 # the unix terminal word color
 
-
+# NEW MAP WITH A SET OF BASIC COLORS
+NEW_FILE_TEMPLATE = """\
+GRIDMAP 0.1
+<set>
+<color>
+#0F3256
+#557C50
+#638F9A
+#AB8B5C
+#8B606D
+#892830
+<floor>
+<item>
+<user>
+<player>
+"""
 class TERMCOLOR:
     "terminal color"
     BLACK = "\033[30m"

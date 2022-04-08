@@ -47,10 +47,32 @@ Use 'help' to see help ...\
         super().__init__(completekey, stdin, stdout)
         self.data = None
         self.mapcanvas = None
+        self.tmp_action_list = []
         self.log = misc.LogCls()
 
     def emptyline(self):
         return False
+
+    def do_new(self, arg: str):
+        """create a new map
+        command: new [x_max=20] [y_max=15] [name=new_map]
+        """
+        arg_lst = arg.split()
+        default_arg = ["20", "15", "new_map"]
+        if self.data is not None:
+            self.do_clear()
+        self.data = loadmap.new_file()
+        for i, j in enumerate(arg_lst):
+            default_arg[i] = j
+        mapconf = gridcls.Node.Set(
+            x_max=int(default_arg[0]),
+            y_max=int(default_arg[1]),
+            _r=30,
+            name=default_arg[2]
+        )
+        self.data["<set>"].set_data(mapconf)
+        self.mapcanvas = create_grid_pic.MapCanvas(self.data)
+        self.log.info("new map created")
 
     def do_load(self, arg: str):
         "load [path]|'tk'"
@@ -139,9 +161,10 @@ type-{player.type}")
     #     "return status"
     #     op(self.data, args)
 
-    def do_clear(self, _):
+    def do_clear(self, _=None):
         if self.data is not None:
             self.data = None
+            self.tmp_action_list = []
             self.log.info("load cleared")
         if self.mapcanvas is None:
             # self.log.debug("map unload")
@@ -150,6 +173,7 @@ type-{player.type}")
             self.mapcanvas = None
         else:
             self.mapcanvas.image.close()
+            self.mapcanvas = None
         self.log.info("map cleared")
 
     def do_preview(self, *_):
@@ -164,6 +188,10 @@ type-{player.type}")
         _t = time.time()
         if not self.mapcanvas.map_created:
             self.mapcanvas.craete_map()
+            self.tmp_action_list = []
+        if self.tmp_action_list:
+            for pos_conf in self.tmp_action_list:
+                self.mapcanvas.draw_from_pos_conf(pos_conf=pos_conf)
         img = self.mapcanvas.output()
         # img.show()
         self.log.info(f"time used: {time.time() - _t}")
@@ -177,10 +205,11 @@ type-{player.type}")
 添加元素
 add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
     item : add item A0 [marker_type "star"] [color_id 0~7] [name: abc]
-    player: add player A0 [marker_type] [color_id] [user_id] [pc_name]
+    player: add player A0 [marker_type] [color_id] [pc_name] [user_id]
     floor: add floor A0 [color id | hex #rgb]
 """
         arg = raw_arg.split()
+
         if arg[0] == "floor":
             if len(arg) < 3:
                 self.log.error("Input ERROR")
@@ -197,10 +226,56 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
             elif color_raw.isalnum():
                 color_id = int(color_raw)
             floor_elem = gridcls.Node.Floor(pos, color_id)
-            self.data["<floor>"][pos] = floor_elem
-            self.mapcanvas.draw_single_hex_floor(
-                pos, self.data["<color>"][color_id]
+            pos_conf = self.data.get_pos(pos)
+            self.data["<floor>"].set_on_pos(pos, floor_elem)
+            pos_conf.floor = floor_elem
+            self.tmp_action_list.append(pos_conf)
+
+        elif arg[0] == "item":
+            if len(arg) <= 4:
+                self.log.error("Input ERROR")
+                self.do_help("add")
+                return
+            pos = gridcls.Pos(pos=arg[1])
+            marker_type = arg[2]
+            color_id = int(arg[3])
+            name = arg[4]
+            if marker_type in global_const.RESOURCE_STAMP_TYPE:
+                stamp_id = global_const.RESOURCE_STAMP_TYPE.index(marker_type)
+            elif marker_type.isdecimal():
+                stamp_id = int(marker_type)
+            else:
+                self.log.error("unkuown stamp type: {0}", marker_type)
+                return
+            item_id = len(self.data["<item>"].data) + 1
+            item_node = gridcls.Node.Item(
+                id=item_id, name=name, color=color_id, type=stamp_id, pos=pos
             )
+            self.data["<item>"].set_on_pos(pos, item_node)
+
+        elif arg[0] == "player":
+            if len(arg) <= 5:
+                self.log.error("Input ERROR")
+                self.do_help("add")
+                return
+            pos = gridcls.Pos(pos=arg[1])
+            marker_type = arg[2]
+            color_id = int(arg[3])
+            name = arg[4]
+            user_id = arg[5]
+            if marker_type in global_const.RESOURCE_STAMP_TYPE:
+                stamp_id = global_const.RESOURCE_STAMP_TYPE.index(marker_type)
+            elif marker_type.isdecimal():
+                stamp_id = int(marker_type)
+            else:
+                self.log.error("unkuown stamp type: {0}", marker_type)
+                return
+            item_id = len(self.data["<player>"].data) + 1
+            item_node = gridcls.Node.Player(
+                id=item_id, name=name, color=color_id, type=stamp_id, pos=pos,
+                uid=user_id
+            )
+            self.data["<player>"].set_on_pos(pos, item_node)
 
         # TODO
         elif arg[0] == "color":
@@ -253,22 +328,29 @@ terminal line instead")
                     initialdir=".",
                     filetypes=[("jpg file", ".jpg"), ("png file", ".png"),
                                ("all files", ".*"), ],
-                    parent=root, title="select hex grid save file",
+                    parent=root, title="select render output file",
                     defaultextension=".png")
                 print(path)
                 root.destroy()
             else:
                 print(f"""{global_const.TERMCOLOR.YELLOW}Cannot find module \
 'tkinter', input path by terminal line instead""")
-                path = input(f"""hexmap file (*.hgdata) path: \
+                path = input(f"""render output file" (*.jpg / *.png) path: \
 {global_const.TERMCOLOR.DEFAULT}""")
         if path == "":
             self.log.info("cancelled")
             return
         self.log.info("- render start -")
+        if self.data is None:
+            self.log.error("please load file first")
+            return
         _t = time.time()
         if not self.mapcanvas.map_created:
             self.mapcanvas.craete_map()
+            self.tmp_action_list = []
+        if self.tmp_action_list:
+            for pos_conf in self.tmp_action_list:
+                self.mapcanvas.draw_from_pos_conf(pos_conf=pos_conf)
         if "--raw" in arg_lst:
             img = self.mapcanvas.image.convert("RGB")
             img.save(path)

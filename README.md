@@ -1,9 +1,30 @@
 # HEXGRID - A hexagon map editor on command line
 [![Pylint](https://github.com/raininboat/hexgrid/actions/workflows/pylint.yml/badge.svg?branch=master)](https://github.com/raininboat/hexgrid/actions/workflows/pylint.yml)
 ========
+
 This is a test version of `hexgrid` with a lot of features unfinished
-![六角格预览](./sample/sample_grid.jpg)
-# LICENCE
+
+![hexagon map preview](./sample/sample_grid.jpg)
+
+# CURRENT STATUS
+this map editor is based on command line, and can be used on both `Windows` and `Linux`.
+
+commands are listed as follows:
+
+| command | description |
+| ------- | ----------- |
+| `new` | create a new map |
+| `load` | load a `*.hgdata` [map save file](./sample/save.hgdata) |
+| `show` | list the data of the current map |
+| `add` | add something on the map |
+| `preview` | show the current preview (require gui) |
+| `save` | save the map data file `*.hgdata` |
+| `render` | render the map, export `*.jpg` or `*.png` |
+| `clear` | clear all the data loaded |
+
+*use `help <command>` in termianl to see syntax*
+
+# LICENSE
 Licensed under Apache License
 ~~~
    Copyright 2022 Thunderain Zhou

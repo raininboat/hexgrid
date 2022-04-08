@@ -192,13 +192,21 @@ class Grid(dict):
     def __init__(self, map_save_dict: dict = None):
         super().__init__()
         self.update(map_save_dict)
+        # self._map_data = self.get_map_data()
+
+    def get_pos(self, pos: Pos):
+        "still generates all the map datas"
+        map_data = self.get_map_data()
+        if pos in map_data:
+            return map_data[pos]
+        return PosConf(pos=pos)
 
     def get_map_data(self, gridobj=None):
         "get all markers on the map according to pos"
         if gridobj is None:
             gridobj = self
         tmp_data_dict = {}   # Pos: PosConf
-        tmp_data_dict["color"] = gridobj["<color>"]
+        # tmp_data_dict["color"] = gridobj["<color>"]
         for tag in ["<floor>", "<item>", "<player>"]:
             for data in gridobj[tag].get_data_iter():
                 if data.pos in tmp_data_dict:
@@ -219,19 +227,12 @@ class Grid(dict):
             ]
             for tag in tag_list:
                 data = self[tag]
-                print(tag, data)
+                # print(tag, data)
                 file.writelines(data.get_save_iter())
 
 
 class MapGridElementTemplate:
     "basic hexgrid row element template"
-    # def __init__(self, row_data_list):
-    #     "the init method should be override"
-    #     self.data = row_data_list
-
-    # def __iter__(self):
-    #     return self._RowIter(self.data)
-
     class _RowIter:
         # "the iter generater class, write __iter__ in the main cls to use it"
         def __init__(self, data_list):

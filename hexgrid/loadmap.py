@@ -125,6 +125,7 @@ class MapSave:
             return False
 
         def get_color(self, color_id: int):
+            "the color string according to the id (#FFFFFF if not exist)"
             if color_id >= len(self.data) or color_id < 0:
                 print(f"ERROR, NO COLOR - {color_id}")
                 print(self.data)

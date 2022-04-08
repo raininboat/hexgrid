@@ -157,17 +157,13 @@ type-{player.type}")
             self.log.info("map data player list:\n" + "\n".join(tmp_reply_lst))
             return
 
-    # def do_status(self, *args):
-    #     "return status"
-    #     op(self.data, args)
-
     def do_clear(self, _=None):
+        "clear the current map"
         if self.data is not None:
             self.data = None
             self.tmp_action_list = []
             self.log.info("load cleared")
         if self.mapcanvas is None:
-            # self.log.debug("map unload")
             return
         if not self.mapcanvas.map_created:
             self.mapcanvas = None
@@ -193,12 +189,9 @@ type-{player.type}")
             for pos_conf in self.tmp_action_list:
                 self.mapcanvas.draw_from_pos_conf(pos_conf=pos_conf)
         img = self.mapcanvas.output()
-        # img.show()
         self.log.info(f"time used: {time.time() - _t}")
-        # img.show()
         self.mapcanvas.image.show()
         img.close()
-        # self.mapcanvas.image.show("image preview")
 
     def do_add(self, raw_arg: str):
         """\
@@ -279,11 +272,20 @@ add [type <'item'|'floor'|'player'>] [Pos: str "A0"] ...
 
         # TODO
         elif arg[0] == "color":
-            if len(arg) == 1 or "--tk" in arg:
-                root = Tk()
-                root.withdraw()
-                color, string = colorchooser.askcolor("#FF0000")
-                self.log.debug("color choosed - {0}: {1}", string, color)
+            if len(arg) == 1:
+                if FLAG_GUI or "--tk" in arg:
+                    root = Tk()
+                    root.withdraw()
+                    color, string = colorchooser.askcolor("#FF0000")
+                    self.log.debug("color choosed - {0}: {1}", string, color)
+                    root.destroy()
+                else:
+                    self.log.warning("""gui not available (use --tk to apply \
+tkinter by force)""")
+                    color = input("please input color (#rrggbb): ")
+            else:
+                color = arg[1]
+            self.data["<color>"].add_color(color)
 
     def do_save(self, arg: str):
         "save the map file"

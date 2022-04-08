@@ -15,8 +15,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 """
-
 import re
+import sys
 from dataclasses import dataclass
 from math import log
 from typing import Any, overload
@@ -36,7 +36,10 @@ class Pos:
 
     def __init__(self, *args, **kwargs):
         if len(args) == 1:
-            self._init_pos(args[0])
+            if isinstance(args, str):
+                self._init_pos(args[0])
+            elif isinstance(args, tuple):
+                self._init_xy(args[0], args[1])
         elif len(args) == 2:
             self._init_xy(args[0], args[1])
         elif "pos" in kwargs:
@@ -217,10 +220,15 @@ class Grid(dict):
                     tmp_data_dict[data.pos] = this_pos_conf
         return tmp_data_dict
 
-    def save(self, path, encoding="utf-8"):
-        # TODO: save map
+    def save(self, path=None, encoding="utf-8"):
         "save the hexmap"
-        with open(path, mode="w", encoding=encoding) as file:
+        if path is not None:
+            # file_path = True
+            file = open(path, mode="w", encoding=encoding)
+        else:
+            # file_path = False
+            file = sys.stdout
+        with file:
             file.writelines(global_const.SAVE_FILE_HEADER)
             tag_list = [
                 "<set>", "<color>", "<floor>", "<item>", "<user>", "<player>"
@@ -229,6 +237,8 @@ class Grid(dict):
                 data = self[tag]
                 # print(tag, data)
                 file.writelines(data.get_save_iter())
+        # if file_path:
+        #     file.close()
 
 
 class MapGridElementTemplate:

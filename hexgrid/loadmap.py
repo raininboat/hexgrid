@@ -247,10 +247,15 @@ __tag_class = {
     "<floor>": MapSave.Floor
 }
 
-def new_file():
+def new_file(data_set_node=None):
     "return an empty grid object of a new file"
     new_file_ = global_const.NEW_FILE_TEMPLATE.splitlines()
-    return init_map_data(new_file_)
+    data = init_map_data(new_file_)
+    if data_set_node is not None:
+        obj_set = MapSave.Set()
+        obj_set.data.append(data_set_node)
+        data["<set>"] = obj_set
+    return data
 
 def load_file(path, encode="utf-8"):
     "load the hexgrid save file"

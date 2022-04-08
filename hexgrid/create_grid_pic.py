@@ -189,6 +189,8 @@ class MapCanvas:
 
     def output(self):
         "the resized version for output (save or preview)"
+        if not self.map_created:
+            self.craete_map()
         size = self.image.size
         img = self.image.resize((size[0]//2, size[1]//2), 1)
         img = img.convert("RGB")

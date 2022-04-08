@@ -53,6 +53,27 @@ Use 'help' to see help ...\
     def emptyline(self):
         return False
 
+    def do_new(self, arg: str):
+        """create a new map
+        command: new [x_max=20] [y_max=15] [name=new_map]
+        """
+        arg_lst = arg.split()
+        default_arg = ["20", "15", "new_map"]
+        if self.data is not None:
+            self.do_clear()
+        self.data = loadmap.new_file()
+        for i, j in enumerate(arg_lst):
+            default_arg[i] = j
+        mapconf = gridcls.Node.Set(
+            x_max=int(default_arg[0]),
+            y_max=int(default_arg[1]),
+            _r=30,
+            name=default_arg[2]
+        )
+        self.data["<set>"].set_data(mapconf)
+        self.mapcanvas = create_grid_pic.MapCanvas(self.data)
+        self.log.info("new map created")
+
     def do_load(self, arg: str):
         "load [path]|'tk'"
         # print(arg.split())
@@ -140,7 +161,7 @@ type-{player.type}")
     #     "return status"
     #     op(self.data, args)
 
-    def do_clear(self, _):
+    def do_clear(self, _=None):
         if self.data is not None:
             self.data = None
             self.tmp_action_list = []

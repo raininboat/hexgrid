@@ -36,7 +36,22 @@ FONT_DESC_PATH = r"./res/font/Ubuntu-L.ttf"
 SAVE_FILE_HEADER = "GRIDMAP 0.1\n"
 # the unix terminal word color
 
-
+# NEW MAP WITH A SET OF BASIC COLORS
+NEW_FILE_TEMPLATE = """\
+GRIDMAP 0.1
+<set>
+<color>
+#0F3256
+#557C50
+#638F9A
+#AB8B5C
+#8B606D
+#892830
+<floor>
+<item>
+<user>
+<player>
+"""
 class TERMCOLOR:
     "terminal color"
     BLACK = "\033[30m"

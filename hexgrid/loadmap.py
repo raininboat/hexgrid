@@ -18,6 +18,8 @@
 
 import re
 
+from hexgrid import global_const
+
 # import hexgrid
 from . import gridcls, misc
 
@@ -123,10 +125,11 @@ class MapSave:
             return False
 
         def get_color(self, color_id: int):
-            if color_id >= len(self.data):
+            if color_id >= len(self.data) or color_id < 0:
                 print(f"ERROR, NO COLOR - {color_id}")
                 print(self.data)
-                return None
+                print("use default color #FFFFFF")
+                return "#FFFFFF"
             return self.data[color_id].color
 
         def add_color(self, strrgb):
@@ -176,6 +179,12 @@ class MapSave:
         @property
         def size(self):
             return self.data[0].size
+
+        def set_data(self, node_set:Node.Set):
+            if self.data:
+                self.data[0] = node_set
+            else:
+                self.data = [node_set,]
 
         class _MapSaveRow(Node.Set):
             def __init__(self, row_data_list):
@@ -237,23 +246,32 @@ __tag_class = {
     "<floor>": MapSave.Floor
 }
 
+def new_file():
+    "return an empty grid object of a new file"
+    new_file_ = global_const.NEW_FILE_TEMPLATE.splitlines()
+    return init_map_data(new_file_)
 
 def load_file(path, encode="utf-8"):
     "load the hexgrid save file"
     with open(path, mode="r", encoding=encode) as file:
-        re_comp = re.compile(r"^(\<\w+\>)+$")
-        this_tag = "init"
-        ret = {}
-        for line in file:
-            # remove the enter \n at end of each line
-            line = line.rstrip("\n")
-            this_match = re_comp.match(line)
-            if this_match is not None:
-                this_tag = this_match.group()
-                if this_tag in __tag_class:
-                    ret[this_tag] = __tag_class[this_tag]()
-                continue
+        grid = init_map_data(file)
+    return grid
+
+def init_map_data(data_string_iter):
+    "init the map data from a string seperated by lines"
+    re_comp = re.compile(r"^(\<\w+\>)+$")
+    this_tag = "init"
+    ret = {}
+    for line in data_string_iter:
+        # remove the enter \n at end of each line
+        line = line.rstrip("\n")
+        this_match = re_comp.match(line)
+        if this_match is not None:
+            this_tag = this_match.group()
             if this_tag in __tag_class:
-                ret[this_tag].feed_line(line)
+                ret[this_tag] = __tag_class[this_tag]()
+            continue
+        if this_tag in __tag_class:
+            ret[this_tag].feed_line(line)
     grid = gridcls.Grid(ret)
     return grid

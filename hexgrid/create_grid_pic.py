@@ -47,8 +47,10 @@ class MapCanvas:
         "draw the single floor (fill the target hexagon grid)"
         if len(args) == 1:
             if isinstance(args[0], gridcls.Node.Floor):
+                color_id = args[0].color
+                color = self.grid_data["<color>"].get_color(color_id)
                 self.__draw_single_hex_floor(
-                    pos=args[0].pos, color=args[0].color
+                    pos=args[0].pos, color=color
                 )
             else:
                 raise TypeError(args, gridcls.Node.Floor)
@@ -57,8 +59,10 @@ class MapCanvas:
         elif "node" in kwargs:
             node = kwargs["node"]
             if isinstance(node, gridcls.Node.Floor):
+                color_id = node.color
+                color = self.grid_data["<color>"].get_color(color_id)
                 self.__draw_single_hex_floor(
-                    pos=node.pos, color=node.color
+                    pos=node.pos, color=color
                 )
             else:
                 raise TypeError(node, gridcls.Node.Floor)

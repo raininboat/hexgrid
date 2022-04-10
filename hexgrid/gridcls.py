@@ -26,7 +26,9 @@ from . import global_const, misc
 
 
 class Pos:
-    "Position class used for hexgrid locate"
+    """Position class used for hexgrid locate
+    partly based on <https://www.redblobgames.com/grids/hexagons/>
+    """
 
     @overload
     def __init__(self, _x: int, _y: int): ...
@@ -35,6 +37,7 @@ class Pos:
     def __init__(self, pos: str): ...
 
     def __init__(self, *args, **kwargs):
+        "input the offset pos set like 'A8' or (1, 8)"
         if len(args) == 1:
             self._init_pos(args[0])
         elif len(args) == 2:
@@ -69,10 +72,29 @@ class Pos:
         self.point_x = x_val
         self.point_y = y_val
 
-    # def goto(self, vector=(0, 0)):
-    #     _x = self.point_x + vector[0]
-    #     _y = self.point_y + vector[1]
-    #     return Pos(_x, _y)
+    def change_offset_into_cube(self, offset_x: int, offset_y: int):
+        """change the offset coordinate like into cube vector (0, 1, -2)
+        e.g: B2-(2, 2) => (1, -2, 1)
+
+        the origin point is still on the top-left A1 (currently)
+        the positive axis of (x, y, z) is (3, 11, 7 o'clock) to become a right-
+        handed coordinate system
+
+        unit vector on absolute px:
+            x: (R,      0)
+            y: (-R/2,   R*sqrt(3)/2)
+            z: (-R/2,   -R*sqrt(2)/2)
+        """
+
+    def change_cube_into_offset(self, cube_x, cube_y, _=None):
+        """change the cube coordinate back into the offset coordinate
+        the left-top A1 mark as (1, 1) so the origin point is not available on 
+        the map image
+        """
+
+
+    def offset_cood(self):
+        pass
 
     def point_list_around(self):
         "return the 6 points of the grid lines around the pos"
@@ -111,7 +133,7 @@ class Pos:
     def xy_abs(self):
         "absolute coordinate on the canvas (for drawing)"
         _x = self.point_x * global_const.PX_R * 1.5
-        _y = ((self.point_x // 2 - self.point_x / 2)
+        _y = ((self.point_x >> 1 - self.point_x / 2)
               * global_const.PX_R * 2
               * global_const.PX_RATIO + 2 * self.point_y
               * global_const.PX_R * global_const.PX_RATIO)
@@ -127,6 +149,7 @@ class Pos:
         for _ in range(int(log(self.point_x, 26))+1):
             tmp_x, this = divmod(tmp_x, 26)
             x_lst.append(this + 0x40)
+        x_lst.reverse()         # list in long devide is from lowest to highest
         x_ascii = bytes(x_lst.__iter__())
         return x_ascii.decode(encoding="utf-8")
 
